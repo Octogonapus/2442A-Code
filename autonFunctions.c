@@ -27,7 +27,7 @@
 
 /***************************************************************************/
 /*                                                                         */
-/* Macros - Function type ID's                                             */
+/* Function type ID's                                                      */
 /*                                                                         */
 /***************************************************************************/
 #define F_TYPE_NONE  0000
@@ -40,7 +40,14 @@ static int auton_pc = 0;
 //Whether or not a collision has happened
 static bool collisionHappened = false;
 
-//Autonomous function percent completion
+//Autonomous function completion metric
+//driveTime returns the amount of time left to drive
+//driveQuad returns the amount of ticks left to drive
+//driveIME returns the amount of ticks left to drive
+//turnTime retuns the amount of time left to turn
+//turnQuad returns the amount of ticks left to turn
+//turnIME returns the amount of ticks left to turn
+//turnGyro returns the amount of degrees left to turn
 static int f_distanceLeft = 0;
 
 //Autonomous function type ID
@@ -55,12 +62,12 @@ void initializeSensors()
 {
 	clearDebugStream();
 
+	_sensorResetTypeTo(launcherQuad, sensorQuadEncoder);
+	SensorValue[launcherQuad] = 0;
 	_sensorResetTypeTo(leftDriveQuad, sensorQuadEncoder);
 	SensorValue[leftDriveQuad] = 0;
 	_sensorResetTypeTo(rightDriveQuad, sensorQuadEncoder);
 	SensorValue[rightDriveQuad] = 0;
-	_sensorResetTypeTo(launcherQuad, sensorQuadEncoder);
-	SensorValue[launcherQuad] = 0;
 	_sensorResetTypeTo(pidMathLight, sensorDigitalOut);
 	SensorValue[pidMathLight] = LED_OFF;
 
@@ -79,9 +86,11 @@ void initializeSensors()
 /***************************************************************************/
 byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 {
-	int startingTime = time1[T1];
+	int startingTime = time1[T1];             //Record function start
+
 	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
 	setRightDriveMotorsRaw(rightPower);       //Set right side to its power
+
 	while (startingTime + timeMs > time1[T1]) //Wait for timeMs
 	{
 		//Exit if collision has happened
@@ -93,7 +102,7 @@ byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 			return 1;
 		}
 	}
-	setAllDriveMotorsRaw(0);                 //Stop
+	setAllDriveMotorsRaw(0);                  //Stop
 
 	return 0;
 }
@@ -257,8 +266,10 @@ byte driveIME(const int power, const int ticks)
 byte turnTime(const int power, const int timeMs)
 {
 	int startingTime = time1[T1];
-	setLeftDriveMotorsRaw(power);          //Set left side to its power
-	setRightDriveMotorsRaw(-1 * power);    //Set right side to its power
+
+	setLeftDriveMotorsRaw(power);             //Set left side to its power
+	setRightDriveMotorsRaw(-1 * power);       //Set right side to its power
+
 	while (startingTime + timeMs > time1[T1]) //Wait for timeMs
 	{
 		//Exit if collision has happened
@@ -270,7 +281,7 @@ byte turnTime(const int power, const int timeMs)
 			return 1;
 		}
 	}
-	setAllDriveMotorsRaw(0);               //Stop
+	setAllDriveMotorsRaw(0);                  //Stop
 
 	return 0;
 }
@@ -284,19 +295,19 @@ byte turnTime(const int power, const int timeMs)
 /***************************************************************************/
 byte turnQuad(const int power, const int ticks)
 {
-	SensorValue[leftDriveQuad] = 0;     //Clear left encoder
-	SensorValue[rightDriveQuad] = 0;    //Clear right encoder
+	SensorValue[leftDriveQuad] = 0;  //Clear left encoder
+	SensorValue[rightDriveQuad] = 0; //Clear right encoder
 
-	int rDiff;                          //Difference between sides
-	int rMod;                           //10% of power in the direction of rDiff
+	int rDiff;                       //Difference between sides
+	int rMod;                        //10% of power in the direction of rDiff
 
 	//Full power for 60% of ticks
 	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) * 0.6)
 	{
-		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
-		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
-		setLeftDriveMotorsRaw(power);                                                  //Directly control left side
-		setRightDriveMotorsRaw((-1 * power) - rMod);                                   //Have right side adjust to keep in tune with left side
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]); //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                            //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power);                                               //Directly control left side
+		setRightDriveMotorsRaw((-1 * power) - rMod);                                //Have right side adjust to keep in tune with left side
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -311,10 +322,10 @@ byte turnQuad(const int power, const int ticks)
 	//1/3 power for last 40% of ticks
 	while (abs(SensorValue[leftDriveQuad]) < abs(ticks))
 	{
-		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
-		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
-		setLeftDriveMotorsRaw(power / 3);                                              //Directly control left side
-		setRightDriveMotorsRaw((-1 * (power * 0.8)) - rMod);                           //Have right side adjust to keep in tune with left side
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]); //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                            //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power / 3);                                           //Directly control left side
+		setRightDriveMotorsRaw((-1 * (power * 0.8)) - rMod);                        //Have right side adjust to keep in tune with left side
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -326,8 +337,8 @@ byte turnQuad(const int power, const int ticks)
 		}
 	}
 
-	turnTime(-1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
-	setAllDriveMotorsRaw(0);           //Stop
+	turnTime(-1 * (power / 2), 50);  //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);         //Stop
 
 	return 0;
 }
@@ -343,19 +354,19 @@ byte turnQuad(const int power, const int ticks)
 /***************************************************************************/
 byte turnIME(const int power, const int ticks)
 {
-	nMotorEncoder[leftDriveFront] = 0;     //Clear left IME
-	nMotorEncoder[rightDriveFront] = 0;    //Clear right IME
+	nMotorEncoder[leftDriveFront] = 0;  //Clear left IME
+	nMotorEncoder[rightDriveFront] = 0; //Clear right IME
 
-	int rDiff;                             //Difference between sides
-	int rMod;                              //10% of power in the direction of rDiff
+	int rDiff;                          //Difference between sides
+	int rMod;                           //10% of power in the direction of rDiff
 
 	//Full power for 60% of ticks
 	while (abs(nMotorEncoder[leftDriveFront]) < abs(ticks) * 0.6)
 	{
-		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]);    //Difference between sides
-		rMod = sgn(rDiff) * power * 0.1;                                                     //10% of power in the direction of rDiff
-		setLeftDriveMotorsRaw(power);                                                        //Directly control left side
-		setRightDriveMotorsRaw((-1 * power) - rMod);                                         //Have right side adjust to keep in tune with left side
+		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]); //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                                  //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power);                                                     //Directly control left side
+		setRightDriveMotorsRaw((-1 * power) - rMod);                                      //Have right side adjust to keep in tune with left side
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -370,10 +381,10 @@ byte turnIME(const int power, const int ticks)
 	//1/3 power for last 40% of ticks
 	while (abs(nMotorEncoder[leftDriveFront]) < abs(ticks))
 	{
-		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]);    //Difference between sides
-		rMod = sgn(rDiff) * power * 0.1;                                                     //10% of power in the direction of rDiff
-		setLeftDriveMotorsRaw(power / 3);                                                    //Directly control left side
-		setRightDriveMotorsRaw((-1 * (power * 0.8)) - rMod);                                 //Have right side adjust to keep in tune with left side
+		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]); //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                                  //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power / 3);                                                 //Directly control left side
+		setRightDriveMotorsRaw((-1 * (power * 0.8)) - rMod);                              //Have right side adjust to keep in tune with left side
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -385,8 +396,8 @@ byte turnIME(const int power, const int ticks)
 		}
 	}
 
-	turnTime(-1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
-	setAllDriveMotorsRaw(0);           //Stop
+	turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);            //Stop
 
 	return 0;
 }
@@ -402,18 +413,18 @@ byte turnIME(const int power, const int ticks)
 /***************************************************************************/
 byte turnGyro(const int power, const float deg)
 {
-	SensorValue[gyro] = 0;    //Clear the gyro
+	SensorValue[gyro] = 0;              //Clear the gyro
 
-	int ticks = (int)(deg * 10);     //Scale degrees down to gyro ticks
+	int ticks = (int)(deg * 10);        //Scale degrees down to gyro ticks
 
-	const int timeout = 3000;        //Loop timeout
-	int startTime = time1[T1];       //Loop timeout counter
+	const int timeout = 3000;           //Loop timeout
+	int startTime = time1[T1];          //Loop timeout counter
 
 	//Full power for 60% of ticks
 	while (abs(SensorValue[gyro]) < abs(ticks) * 0.6)
 	{
-		setLeftDriveMotorsRaw(power);     //Set the left side to its power
-		setRightDriveMotorsRaw(-power);    //Set the right side to its power
+		setLeftDriveMotorsRaw(power);   //Set the left side to its power
+		setRightDriveMotorsRaw(-power); //Set the right side to its power
 
 		//Exit if taking too long
 		if (time1[T1] - startTime > timeout)
@@ -426,7 +437,7 @@ byte turnGyro(const int power, const float deg)
 		if (collisionHappened)
 		{
 			setAllDriveMotorsRaw(0);
-			f_distanceLeft = ticks - SensorValue[gyro];
+			f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
 			f_type = F_TYPE_TURN;
 			return 1;
 		}
@@ -437,8 +448,8 @@ byte turnGyro(const int power, const float deg)
 	//80% power for next 20% of ticks
 	while (abs(SensorValue[gyro]) < abs(ticks) * 0.8)
 	{
-		setLeftDriveMotorsRaw(power * 0.8);      //Set the left side to its power
-		setRightDriveMotorsRaw(-power * 0.8);    //Set the right side to its power
+		setLeftDriveMotorsRaw(power * 0.8);   //Set the left side to its power
+		setRightDriveMotorsRaw(-power * 0.8); //Set the right side to its power
 
 		//Exit if taking too long
 		if (time1[T1] - startTime > timeout)
@@ -451,7 +462,7 @@ byte turnGyro(const int power, const float deg)
 		if (collisionHappened)
 		{
 			setAllDriveMotorsRaw(0);
-			f_distanceLeft = ticks - SensorValue[gyro];
+			f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
 			f_type = F_TYPE_TURN;
 			return 1;
 		}
@@ -462,8 +473,8 @@ byte turnGyro(const int power, const float deg)
 	//40% power for last 20% of ticks
 	while (abs(SensorValue[gyro]) < abs(ticks))
 	{
-		setLeftDriveMotorsRaw(power * 0.4);      //Set the left side to its power
-		setRightDriveMotorsRaw(-power * 0.4);    //Set the right side to its power
+		setLeftDriveMotorsRaw(power * 0.4);   //Set the left side to its power
+		setRightDriveMotorsRaw(-power * 0.4); //Set the right side to its power
 
 		//Exit if taking too long
 		if (time1[T1] - startTime > timeout)
@@ -476,14 +487,14 @@ byte turnGyro(const int power, const float deg)
 		if (collisionHappened)
 		{
 			setAllDriveMotorsRaw(0);
-			f_distanceLeft = ticks - SensorValue[gyro];
+			f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
 			f_type = F_TYPE_TURN;
 			return 1;
 		}
 	}
 
-	turnTime(-1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
-	setAllDriveMotorsRaw(0);           //Stop
+	turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);            //Stop
 
 	return 0;
 }
@@ -563,6 +574,12 @@ task filterAccelTask()
 bool forceTrig; //Simulate a collision
 collisionVector2f collVec; //Collision vector
 
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Corrects for a collision                                   */
+/*              See notebook for math and diagrams behind this code        */
+/*                                                                         */
+/***************************************************************************/
 void correctForCollision()
 {
 	if (f_type == F_TYPE_DRIVE)
@@ -608,6 +625,12 @@ void correctForCollision()
 	}
 }
 
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Monitors for a collision                                   */
+/*              See notebook for math and diagrams behind this code        */
+/*                                                                         */
+/***************************************************************************/
 task monitorForCollision()
 {
 	//Threshold for what is recognized as a collision

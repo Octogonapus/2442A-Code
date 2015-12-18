@@ -18,14 +18,16 @@ typedef struct vel_PID
 	float lowerBound;
 
 	//PID calculations
-	int error;
 	float currentVelocity;
-	int prevError;
 	int prevPosition;
-	float dt;
-	int prevTime;
+	int error;
+	int prevError;
 	int integral;
 	int derivative;
+
+	//Timestep
+	float dt;
+	int prevTime;
 
 	//PID limits
 	int errorSumThreshold;

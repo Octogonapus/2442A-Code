@@ -404,11 +404,10 @@ task usercontrol()
 			}
 
 			//setAllLauncherMotors(launcherPID_OUT);
-			if (!shifterEngaged_Manual)
-			{
-				SensorValue[shifter] = 1;
-			}
 
+			shifterEngaged_Manual = false;
+			SensorValue[shifter] = 1;
+			
 			setAllDriveMotors(launcherPOWER);
 		}
 		//If the launcher should not run
