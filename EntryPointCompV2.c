@@ -391,7 +391,8 @@ task usercontrol()
 				launcherPID.targetVelocity = launcherTargetRPM;
 
 				//Get the PID controller's output
-				launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
+				//launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
+				launcherPID_OUT = vel_PID_StepController_ACCEL(&launcherPID);
 
 				//Bound the PID controller's output to [0, 127] so the launcher's motors can't reverse
 				launcherPID_OUT = launcherPID_OUT < 0 ? 0 : launcherPID_OUT;
@@ -408,6 +409,28 @@ task usercontrol()
 			shifterEngaged_Manual = false;
 			SensorValue[shifter] = 1;
 			
+			/*if (launcherPID_OUT > 0)
+			{
+				setAllDriveMotors(127);
+			}
+			else if (launcherPID_OUT < 0)
+			{
+				setAllDriveMotors(-127);
+			}
+			else
+			{
+				setAllDriveMotors(0);
+			}
+
+			setMotorSlew(leftDriveBottomFront, launcherPID_OUT);
+			setMotorSlew(leftDriveBottomBack, launcherPID_OUT);
+			setMotorSlew(leftDriveTopFront, launcherPID_OUT);
+			setMotorSlew(leftDriveTopBack, launcherPID_OUT);
+			setMotorSlew(rightDriveBottomFront, launcherPID_OUT);
+			setMotorSlew(rightDriveBottomBack, launcherPID_OUT);
+			setMotorSlew(rightDriveTopFront, launcherPID_OUT);
+			setMotorSlew(rightDriveTopBack, launcherPID_OUT);*/
+
 			setAllDriveMotors(launcherPOWER);
 		}
 		//If the launcher should not run
