@@ -417,10 +417,6 @@ task usercontrol()
 			{
 				setAllDriveMotors(-127);
 			}
-			else
-			{
-				setAllDriveMotors(0);
-			}
 
 			setMotorSlew(leftDriveBottomFront, launcherPID_OUT);
 			setMotorSlew(leftDriveBottomBack, launcherPID_OUT);
