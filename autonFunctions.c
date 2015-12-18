@@ -1,0 +1,790 @@
+#ifndef AUTONOMOUSFUNCTIONS_H_INCLUDED
+#define AUTONOMOUSFUNCTIONS_H_INCLUDED
+
+#include "BCI_V3\Bulldog_Core_Includes.h"
+#include "Modules\Core\collisionVector2f.c"
+
+/***************************************************************************/
+/*                                                                         */
+/* Macros - Easy control of motors                                         */
+/*                                                                         */
+/***************************************************************************/
+#define setLeftDriveMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDriveTopFront, power); setMotorSpeed(leftDriveTopBack, power)
+#define setRightDriveMotors(power) setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDriveTopFront, power); setMotorSpeed(rightDriveTopBack, power)
+#define setAllDriveMotors(power) setLeftDriveMotors(power); setRightDriveMotors(power)
+#define setIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
+
+#define setLeftDriveMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDriveTopFront] = power; motor[leftDriveTopBack] = power
+#define setRightDriveMotorsRaw(power) motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDriveTopFront] = power; motor[rightDriveTopBack] = power
+#define setAllDriveMotorsRaw(power) setLeftDriveMotorsRaw(power); setRightDriveMotorsRaw(power)
+#define setIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
+
+//Sensor redo
+#define _sensorResetTypeTo(sensor, type) SensorType[sensor] = sensorNone; SensorType[sensor] = type
+
+//Autonomous helper
+#define _autonCE(func) if (func == 1) { return; }
+
+/***************************************************************************/
+/*                                                                         */
+/* Macros - Function type ID's                                             */
+/*                                                                         */
+/***************************************************************************/
+#define F_TYPE_NONE  0000
+#define F_TYPE_DRIVE 0011
+#define F_TYPE_TURN  1100
+
+//Autonomous program counter
+static int auton_pc = 0;
+
+//Whether or not a collision has happened
+static bool collisionHappened = false;
+
+//Autonomous function percent completion
+static int f_distanceLeft = 0;
+
+//Autonomous function type ID
+static int f_type = F_TYPE_NONE;
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Initializes and clears sensors                             */
+/*                                                                         */
+/***************************************************************************/
+void initializeSensors()
+{
+	clearDebugStream();
+
+	_sensorResetTypeTo(leftDriveQuad, sensorQuadEncoder);
+	SensorValue[leftDriveQuad] = 0;
+	_sensorResetTypeTo(rightDriveQuad, sensorQuadEncoder);
+	SensorValue[rightDriveQuad] = 0;
+	_sensorResetTypeTo(launcherQuad, sensorQuadEncoder);
+	SensorValue[launcherQuad] = 0;
+	_sensorResetTypeTo(pidMathLight, sensorDigitalOut);
+	SensorValue[pidMathLight] = LED_OFF;
+
+	writeDebugStreamLine("calibrating gyro");
+	SensorType[gyro] = sensorNone;
+	wait1Msec(500);
+	SensorType[gyro] = sensorGyro;
+	wait1Msec(1100);
+	writeDebugStreamLine("done calibrating gyro");
+}
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Drives for time in milliseconds                            */
+/*                                                                         */
+/***************************************************************************/
+byte driveTime(const int leftPower, const int rightPower, const int timeMs)
+{
+	int startingTime = time1[T1];
+	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
+	setRightDriveMotorsRaw(rightPower);       //Set right side to its power
+	while (startingTime + timeMs > time1[T1]) //Wait for timeMs
+	{
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = time1[T1] - (startingTime + timeMs);
+			f_type = F_TYPE_DRIVE;
+			return 1;
+		}
+	}
+	setAllDriveMotorsRaw(0);                 //Stop
+
+	return 0;
+}
+
+#ifdef USING_QUADS
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Drives for distance in units (default: inches)             */
+/*                                                                         */
+/***************************************************************************/
+byte driveQuad(const int power, const int ticks)
+{
+	SensorValue[leftDriveQuad] = 0;                             //Clear left encoder
+	SensorValue[rightDriveQuad] = 0;                            //Clear right encoder
+
+	int rDiff;                                                  //Difference between sides
+	int rMod;                                                   //10% of power in the direction of rDiff
+
+	//Full power for 90% of ticks
+	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) * 0.9)
+	{
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power);                                                  //Directly control left side
+		setRightDriveMotorsRaw(power + rMod);                                          //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_DRIVE;
+			return 1;
+		}
+	}
+
+	//1/3 power for last 10% of ticks
+	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) - 10)
+	{
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power / 3);                                              //Directly control left side
+		setRightDriveMotorsRaw((power / 3) + rMod);                                    //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_DRIVE;
+			return 1;
+		}
+	}
+
+	driveTime(-1 * (power / 2), -1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);                              //Stop
+
+	return 0;
+}
+
+#endif //USING_QUADS
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Drives for a distance to align with a line                 */
+/*                                                                         */
+/***************************************************************************/
+void alignWithLine(const int power, const int lineCutoff = 500)
+{
+	bool keepRunning = true; //Keep driving to align the robot
+
+	while (keepRunning)
+	{
+		//Run left side if it isn't on the line yet
+		if (SensorValue[leftLineSensor] > lineCutoff)
+		{
+			setLeftDriveMotorsRaw(power);
+		}
+		else
+		{
+			setLeftDriveMotorsRaw(0);
+		}
+
+		//Run right side if it isn't on the line yet
+		if (SensorValue[rightLineSensor] > lineCutoff)
+		{
+			setRightDriveMotorsRaw(power);
+		}
+		else
+		{
+			setRightDriveMotorsRaw(0);
+		}
+	}
+}
+
+#ifdef USING_IMES
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Drives for distance in units (default: inches)             */
+/*                                                                         */
+/***************************************************************************/
+byte driveIME(const int power, const int ticks)
+{
+	nMotorEncoder[leftDriveFront] = 0;                          //Clear left IME
+	nMotorEncoder[rightDriveFront] = 0;                         //Clear right IME
+
+	int rDiff;                                                  //Difference between sides
+	int rMod;                                                   //10% of power in the direction of rDiff
+
+	//Full power for 60% of ticks
+	while (abs(nMotorEncoder[leftDriveFront]) < abs(ticks) * 0.6)
+	{
+		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                                     //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power);                                                        //Directly control left side
+		setRightDriveMotorsRaw(power + rMod);                                                //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_DRIVE;
+			return 1;
+		}
+	}
+
+	//1/3 power for last 40% of ticks
+	while (abs(nMotorEncoder[leftDriveFront]) < abs(ticks))
+	{
+		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                                     //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power / 3);                                                    //Directly control left side
+		setRightDriveMotorsRaw((power / 3) + rMod);                                          //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_DRIVE;
+			return 1;
+		}
+	}
+
+	driveTime(-1 * (power / 2), -1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);                              //Stop
+
+	return 0;
+}
+
+#endif //USING_IMES
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Turns for time in milliseconds                             */
+/*                                                                         */
+/***************************************************************************/
+byte turnTime(const int power, const int timeMs)
+{
+	int startingTime = time1[T1];
+	setLeftDriveMotorsRaw(power);          //Set left side to its power
+	setRightDriveMotorsRaw(-1 * power);    //Set right side to its power
+	while (startingTime + timeMs > time1[T1]) //Wait for timeMs
+	{
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = time1[T1] - (startingTime + timeMs);
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+	setAllDriveMotorsRaw(0);               //Stop
+
+	return 0;
+}
+
+#ifdef USING_QUADS
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Turns for distance in units (default: inches)              */
+/*                                                                         */
+/***************************************************************************/
+byte turnQuad(const int power, const int ticks)
+{
+	SensorValue[leftDriveQuad] = 0;     //Clear left encoder
+	SensorValue[rightDriveQuad] = 0;    //Clear right encoder
+
+	int rDiff;                          //Difference between sides
+	int rMod;                           //10% of power in the direction of rDiff
+
+	//Full power for 60% of ticks
+	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) * 0.6)
+	{
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power);                                                  //Directly control left side
+		setRightDriveMotorsRaw((-1 * power) - rMod);                                   //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	//1/3 power for last 40% of ticks
+	while (abs(SensorValue[leftDriveQuad]) < abs(ticks))
+	{
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power / 3);                                              //Directly control left side
+		setRightDriveMotorsRaw((-1 * (power * 0.8)) - rMod);                           //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	turnTime(-1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);           //Stop
+
+	return 0;
+}
+
+#endif //USING_QUADS
+
+#ifdef USING_IMES
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Turns for distance in units (default: inches)              */
+/*                                                                         */
+/***************************************************************************/
+byte turnIME(const int power, const int ticks)
+{
+	nMotorEncoder[leftDriveFront] = 0;     //Clear left IME
+	nMotorEncoder[rightDriveFront] = 0;    //Clear right IME
+
+	int rDiff;                             //Difference between sides
+	int rMod;                              //10% of power in the direction of rDiff
+
+	//Full power for 60% of ticks
+	while (abs(nMotorEncoder[leftDriveFront]) < abs(ticks) * 0.6)
+	{
+		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                                     //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power);                                                        //Directly control left side
+		setRightDriveMotorsRaw((-1 * power) - rMod);                                         //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	//1/3 power for last 40% of ticks
+	while (abs(nMotorEncoder[leftDriveFront]) < abs(ticks))
+	{
+		rDiff = abs(nMotorEncoder[leftDriveFront]) - abs(nMotorEncoder[rightDriveFront]);    //Difference between sides
+		rMod = sgn(rDiff) * power * 0.1;                                                     //10% of power in the direction of rDiff
+		setLeftDriveMotorsRaw(power / 3);                                                    //Directly control left side
+		setRightDriveMotorsRaw((-1 * (power * 0.8)) - rMod);                                 //Have right side adjust to keep in tune with left side
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	turnTime(-1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);           //Stop
+
+	return 0;
+}
+
+#endif //USING_IMES
+
+#ifdef USING_GYRO
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Turns for distance in degrees                              */
+/*                                                                         */
+/***************************************************************************/
+byte turnGyro(const int power, const float deg)
+{
+	SensorValue[gyro] = 0;    //Clear the gyro
+
+	int ticks = (int)(deg * 10);     //Scale degrees down to gyro ticks
+
+	const int timeout = 3000;        //Loop timeout
+	int startTime = time1[T1];       //Loop timeout counter
+
+	//Full power for 60% of ticks
+	while (abs(SensorValue[gyro]) < abs(ticks) * 0.6)
+	{
+		setLeftDriveMotorsRaw(power);     //Set the left side to its power
+		setRightDriveMotorsRaw(-power);    //Set the right side to its power
+
+		//Exit if taking too long
+		if (time1[T1] - startTime > timeout)
+		{
+			setAllDriveMotorsRaw(0);
+			return 1;
+		}
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[gyro];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	startTime = time1[T1];
+
+	//80% power for next 20% of ticks
+	while (abs(SensorValue[gyro]) < abs(ticks) * 0.8)
+	{
+		setLeftDriveMotorsRaw(power * 0.8);      //Set the left side to its power
+		setRightDriveMotorsRaw(-power * 0.8);    //Set the right side to its power
+
+		//Exit if taking too long
+		if (time1[T1] - startTime > timeout)
+		{
+			setAllDriveMotorsRaw(0);
+			return 1;
+		}
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[gyro];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	startTime = time1[T1];
+
+	//40% power for last 20% of ticks
+	while (abs(SensorValue[gyro]) < abs(ticks))
+	{
+		setLeftDriveMotorsRaw(power * 0.4);      //Set the left side to its power
+		setRightDriveMotorsRaw(-power * 0.4);    //Set the right side to its power
+
+		//Exit if taking too long
+		if (time1[T1] - startTime > timeout)
+		{
+			setAllDriveMotorsRaw(0);
+			return 1;
+		}
+
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = ticks - SensorValue[gyro];
+			f_type = F_TYPE_TURN;
+			return 1;
+		}
+	}
+
+	turnTime(-1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
+	setAllDriveMotorsRaw(0);           //Stop
+
+	return 0;
+}
+
+#endif //USING_GYRO
+
+int auton_maintainLauncher_target = 200;
+
+task maintainLauncherForAuton()
+{
+	float launcherPID_OUT;
+
+	launcherPID.targetVelocity = auton_maintainLauncher_target;
+
+	while (true)
+	{
+		launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
+		SensorValue[shifter] = 1;
+		setAllDriveMotors(launcherPID_OUT);
+
+		wait1Msec(25);
+	}
+}
+
+void launchOneBall()
+{
+	while (SensorValue[intakeLimit] != 1)
+	{
+		setIntakeMotors(127);
+	}
+	wait1Msec(750);
+	setIntakeMotors(-127);
+	wait1Msec(500);
+	setIntakeMotors(0);
+}
+
+void launchFourBalls(int target)
+{
+	startTask(motorSlewRateTask);
+
+	auton_maintainLauncher_target = target;
+	startTask(maintainLauncherForAuton);
+	wait1Msec(4500);
+	stopTask(maintainLauncherForAuton);
+
+	launchOneBall();
+	wait1Msec(500);
+
+	launchOneBall();
+	wait1Msec(500);
+
+	launchOneBall();
+	wait1Msec(500);
+
+	launchOneBall();
+	wait1Msec(500);
+
+	setAllDriveMotors(0);
+}
+
+task filterAccelTask()
+{
+	const float alpha = 1.0;    //How much of the new accel value to use
+	int accel_raw;              //Raw accel value directly from accelerometer
+	int accel_filt;             //New filtered accel value
+	int accel_filt_old = 0;     //Previous filtered accel value
+
+	while (true)
+	{
+		accel_raw = SensorValue[accelX];                                    //Read new, raw accel from accelerometer itself
+		accel_filt = (1.0 - alpha) * accel_filt_old + alpha * accel_raw;    //(100 - alpha)% of old, filtered accel + alpha% of new, raw accel
+		accel_filt_old = accel_filt;                                        //Update the old filtered accel value
+		wait1Msec(1);                                                       //Hopefully 1ms sample time
+	}
+}
+
+bool forceTrig; //Simulate a collision
+collisionVector2f collVec; //Collision vector
+
+void correctForCollision()
+{
+	if (f_type == F_TYPE_DRIVE)
+	{
+		//Travel from current position to the position at the end of the autonomous function that got interrupted
+
+		if (f_distanceLeft > 0)
+		{
+			//Turn to face P_g, theta = -atan2(dx, z - dy) - dG
+			turnGyro(100, -10 * radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y)) - (collVec.gyroEnd - collVec.gyroStart));
+
+			//Drive to P_g, d = sqrt(dx^2 + dy^2)
+			driveQuad(100, sqrt(pow(collVec.x, 2) + pow(f_distanceLeft - collVec.y, 2)));
+
+			//Turn back to starting angle
+			turnGyro(100, collVec.gyroStart);
+		}
+		else if (f_distanceLeft < 0)
+		{
+			if (collVec.x > 0)
+			{
+				//Turn to face P_g, theta = PI - atan2(dx, z - dy) - dG
+				turnGyro(100, 10 * (180 - radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y))) - (collVec.gyroEnd - collVec.gyroStart));
+
+				//Drive to P_g, d = sqrt(dx^2 + dy^2)
+				driveQuad(100, sqrt(pow(collVec.x, 2) + pow(f_distanceLeft - collVec.y, 2)));
+
+				//Turn back to starting angle
+				turnGyro(100, collVec.gyroStart);
+			}
+			else if (collVec.x < 0)
+			{
+				//Turn to face P_g, theta = -(PI + atan2(dx, z - dy)) - dG
+				turnGyro(100, -10 * (180 + radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y))) - (collVec.gyroEnd - collVec.gyroStart));
+
+				//Drive to P_g, d = sqrt(dx^2 + dy^2)
+				driveQuad(100, sqrt(pow(collVec.x, 2) + pow(f_distanceLeft - collVec.y, 2)));
+
+				//Turn back to starting angle
+				turnGyro(100, collVec.gyroStart);
+			}
+		}
+	}
+}
+
+task monitorForCollision()
+{
+	//Threshold for what is recognized as a collision
+	const int collisionThreshold = 20;
+
+	//Axes x and y are sampled at 200 Hz for 2 seconds in the event of a collision
+	//200 Hz * 2 seconds = 400 samples
+	//Caches for x and y are written to before a collision for data completeness
+	byte cacheX;
+	byte dataX[400];
+	float velX = 0;
+	byte cacheY;
+	byte dataY[400];
+	float velY = 0;
+
+	//Gyro values pre- and post-collision
+	int gyroStart, gyroEnd;
+
+	//Current index in the accelerometer data arrays
+	int dataIndex = 0;
+
+	//Time at start of collision
+	long startTime;
+
+	while (true)
+	{
+		writeDebugStreamLine("S %d, %d", SensorValue[accelX], SensorValue[accelY]);
+
+		//Record gyro value pre-collision
+		gyroStart = SensorValue[gyro];
+
+		//if (abs(cacheX = SensorValue[accelX]) > collisionThreshold || abs(cacheY = SensorValue[accelY]) > collisionThreshold)
+		//if (abs(cacheX = SensorValue[accelX]) == 0 || abs(cacheY = SensorValue[accelY]) == 0)
+		if (forceTrig)
+		{
+			//Let autonomous functions know about the collision
+			collisionHappened = true;
+
+			//Record collision time
+			startTime = time1[T4];
+
+			//Start sampling
+			while (time1[T4] < startTime + 2000)
+			{
+				//Record x and y samples
+				dataX[dataIndex] = SensorValue[accelX];
+				dataY[dataIndex] = SensorValue[accelY];
+				writeDebugStreamLine("D %d, %d, %d", dataX[dataIndex], dataY[dataIndex], dataIndex);
+
+				//Index safety
+				dataIndex += dataIndex < 399 ? 1 : 0;
+
+				//Sample at 200 Hz (hopefully)
+				wait1Msec(5);
+			}
+
+			//Record gyro value post-collision
+			gyroEnd = SensorValue[gyro];
+
+			//Collision over
+			collisionHappened = false;
+
+			//Calculate displacement
+			for (int i = 0; i < 400; i++)
+			{
+				velX += dataX[i] * 5;
+				velY += dataY[i] * 5;
+				collVec.x += velX * 5;
+				collVec.y += velY * 5;
+			}
+
+			//Scale values back to regular size
+			velX /= 1000;
+			velY /= 1000;
+			collVec.x /= 1000;
+			collVec.y /= 1000;
+
+			//Record gyro information
+			collVec.gyroStart = gyroStart;
+			collVec.gyroEnd = gyroEnd;
+
+			//Correct for displacement from collision
+			correctForCollision();
+
+			//Restart autonomous at next step
+			startAutonomous();
+		}
+
+		//Check for collision at 50 Hz
+		wait1Msec(20);
+	}
+}
+
+float launcherRPM = 0.0;
+
+task monitorRPM
+{
+	//Scales degrees per millisecond to rpm
+	const float DPMS_TO_RPM = 166.7;
+
+	//Timestep
+	float dt = 0.0, prevTime = 0.0;
+
+	//Previous quad val
+	int prevCount = 0;
+
+	while (true)
+	{
+		//Calculate timestep
+		dt = (time1[T1] - prevTime) + 1;
+		prevTime = time1[T1];
+
+		//Calculate rpm
+		launcherRPM = (SensorValue[launcherQuad] - prevCount) * (DPMS_TO_RPM / dt);
+		prevCount = SensorValue[launcherQuad];
+
+		wait1Msec(25);
+	}
+}
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Drives in a direction (x drive only)                       */
+/* (Experimental: see notebook and x drive proofs)                         */
+/*                                                                         */
+/***************************************************************************/
+//void driveIndependent(int degrees, int ticks)
+//{
+//		const float radius = 127;
+//		float a, b, theta, vectorX = ticks * cosDegrees(degrees), vectorY = ticks * sinDegrees(degrees);
+
+//		if (degrees > 0 && degrees < 90)
+//		{
+//			//
+//		}
+//		else if (degrees == 90)
+//		{
+//			//
+//		}
+//		else if (degrees > 90 && degrees < 180)
+//		{
+//			while (SensorValue[rightDriveQuad] < vectorX || SensorValue[rightDriveQuad] < vectorY)
+//			{
+//				//Convert degrees to polar coordinates
+//				theta = atan2(radius * sinDegrees(theta), radius * cosDegrees(theta)) * (180.0 / PI);
+
+//				//Calculate opposite-side speeds
+//				a = (cosDegrees(theta + 90.0) + sinDegrees(theta + 90.0)) * radius;
+//				//Optimized a = radius * ROOT_2 * sinDegrees(theta + (PI / 4) + 90);
+//				b = (cosDegrees(theta) + sinDegrees(theta)) * radius;
+
+//				motor[frontLeft] = a;
+//				motor[backLeft] = b;
+//				motor[frontRight] = b;
+//				motor[backRight] = a;
+//			}
+//		}
+//		else if (degrees == 180)
+//		{
+//			//
+//		}
+//		else if (degrees > 180 && degrees < 270)
+//		{
+//			//
+//		}
+//		else if (degrees == 270)
+//		{
+//			//
+//		}
+//		else if (degrees > 270 && degrees < 360)
+//		{
+//			//
+//		}
+//		else if (degrees == 360)
+//		{
+//			//
+//		}
+//}
+
+#endif
