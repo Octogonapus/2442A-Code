@@ -51,6 +51,8 @@ int autonSelection = -1;
 #include "VelocityPID.c"
 vel_PID launcherPID;
 
+#include "VelocityTBH.c"
+
 #include "BCI_V3\Bulldog_Core_Includes.h"
 
 //Autonomous program file includes
@@ -407,7 +409,7 @@ task usercontrol()
 			//Handle shifter state
 			shifterEngaged_Manual = false;
 			SensorValue[shifter] = 1;
-			
+
 			/*if (launcherPID_OUT > 0)
 			{
 				setAllDriveMotors(127);

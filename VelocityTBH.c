@@ -44,7 +44,7 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 	tbh->prevTime = time1[T1];
 
 	//Calculate current velocity
-	tbh->currentVelocity = (SensorValue[tbh->sensor] - tbh->prevPosition) * (DEGPMS_TO_RPM / (tbh->dt * 1000));
+	tbh->currentVelocity = (SensorValue[tbh->sensor] - tbh->prevPosition) * (TBH_DEGPMS_TO_RPM / (tbh->dt * 1000));
 	tbh->prevPosition = SensorValue[tbh->sensor];
 
 	//Calculate error

@@ -1,11 +1,8 @@
 #ifndef VELOCITYTBH_H_INCLUDED
 #define VELOCITYTBH_H_INCLUDED
 
-//This scale constant relates mesured ticks per second to motor power
-#define PID_SCALE 2.67
-
 //This scale relates degrees per millisecond to rpm
-#define DEGPMS_TO_RPM 166.7
+#define TBH_DEGPMS_TO_RPM 166.7
 
 //A velocity TBH controller
 typedef struct vel_TBH
@@ -33,6 +30,6 @@ typedef struct vel_TBH
 
 	//Output
 	float outVal;
-} vel_PID;
+} vel_TBH;
 
 #endif
