@@ -404,8 +404,7 @@ task usercontrol()
 				SensorValue[pidMathLight] = LED_OFF;
 			}
 
-			//setAllLauncherMotors(launcherPID_OUT);
-
+			//Handle shifter state
 			shifterEngaged_Manual = false;
 			SensorValue[shifter] = 1;
 			
@@ -438,6 +437,7 @@ task usercontrol()
 			//Reset the output
 			launcherPID.outVal = 0.0;
 
+			//If shifter was manually engaged, ignore automatic setting
 			if (!shifterEngaged_Manual)
 			{
 				SensorValue[shifter] = 0;

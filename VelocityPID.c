@@ -102,7 +102,7 @@ int vel_PID_StepController_VEL(vel_PID* pid)
 	return pid->outVal;
 }
 
-int vel_PID_InitController_ACCEL(vel_PID *pid)
+int vel_PID_StepController_ACCEL(vel_PID *pid)
 {
 	//Calculate timestep
 	pid->dt = (time1[T1] - pid->prevTime) + 1;
