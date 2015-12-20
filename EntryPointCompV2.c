@@ -34,6 +34,7 @@
 
 #include "Vex_Competition_Includes.c"
 
+//Setup LCD
 #define LCD_SAFETY_REQ_COMP_SWITCH
 #define MENU_NUM 23
 #define USING_QUADS
@@ -48,10 +49,8 @@ bool endPreAuton = false;
 //The autonomous program to run
 int autonSelection = -1;
 
-#include "VelocityPID.c"
+//Launcher PID controller
 vel_PID launcherPID;
-
-#include "VelocityTBH.c"
 
 #include "BCI_V3\Bulldog_Core_Includes.h"
 

@@ -501,10 +501,38 @@ byte turnGyro(const int power, const float deg)
 
 #endif //USING_GYRO
 
-int auton_maintainLauncher_target = 200;
+float launcherRPM = 0.0;
 
+task monitorRPM
+{
+	//Scales degrees per millisecond to rpm
+	const float DPMS_TO_RPM = 166.7;
+
+	//Timestep
+	float dt = 0.0, prevTime = 0.0;
+
+	//Previous quad val
+	int prevCount = 0;
+
+	while (true)
+	{
+		//Calculate timestep
+		dt = (time1[T1] - prevTime) + 1;
+		prevTime = time1[T1];
+
+		//Calculate rpm
+		launcherRPM = (SensorValue[launcherQuad] - prevCount) * (DPMS_TO_RPM / dt);
+		prevCount = SensorValue[launcherQuad];
+
+		wait1Msec(25);
+	}
+}
+
+int auton_maintainLauncher_target = 200;
 task maintainLauncherForAuton()
 {
+	startTask(motorSlewRateTask);
+
 	float launcherPID_OUT;
 
 	launcherPID.targetVelocity = auton_maintainLauncher_target;
@@ -519,40 +547,28 @@ task maintainLauncherForAuton()
 	}
 }
 
-void launchOneBall()
-{
-	while (SensorValue[intakeLimit] != 1)
-	{
-		setIntakeMotors(127);
-	}
-	wait1Msec(750);
-	setIntakeMotors(-127);
-	wait1Msec(500);
-	setIntakeMotors(0);
-}
-
 void launchFourBalls(int target)
 {
-	startTask(motorSlewRateTask);
+	//Number of balls launched
+	int ballCount = 0;
 
 	auton_maintainLauncher_target = target;
 	startTask(maintainLauncherForAuton);
-	wait1Msec(4500);
-	stopTask(maintainLauncherForAuton);
+	
+	//If launcher velocity is in acceptable bounds
+	if (launcherPID.targetVelocity < target + 10 && launcherPID.targetVelocity > target - 10)
+	{
+		//Run intake to launch a ball
+		setIntakeMotorsRaw(127);
 
-	launchOneBall();
-	wait1Msec(500);
+		//If the intake limit switch is hit, a ball is about to be launched
+		if (SensorValue[intakeLimit] == 1)
+		{
+			ballCount++;
+		}
+	}
 
-	launchOneBall();
-	wait1Msec(500);
-
-	launchOneBall();
-	wait1Msec(500);
-
-	launchOneBall();
-	wait1Msec(500);
-
-	setAllDriveMotors(0);
+	setIntakeMotorsRaw(0);
 }
 
 task filterAccelTask()
@@ -721,33 +737,6 @@ task monitorForCollision()
 
 		//Check for collision at 50 Hz
 		wait1Msec(20);
-	}
-}
-
-float launcherRPM = 0.0;
-
-task monitorRPM
-{
-	//Scales degrees per millisecond to rpm
-	const float DPMS_TO_RPM = 166.7;
-
-	//Timestep
-	float dt = 0.0, prevTime = 0.0;
-
-	//Previous quad val
-	int prevCount = 0;
-
-	while (true)
-	{
-		//Calculate timestep
-		dt = (time1[T1] - prevTime) + 1;
-		prevTime = time1[T1];
-
-		//Calculate rpm
-		launcherRPM = (SensorValue[launcherQuad] - prevCount) * (DPMS_TO_RPM / dt);
-		prevCount = SensorValue[launcherQuad];
-
-		wait1Msec(25);
 	}
 }
 

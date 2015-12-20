@@ -7,5 +7,8 @@
 #include "Modules\Core\motorControl.c"
 #include "Modules\Core\lcdControl.c"
 #include "Modules\Core\pidControl.c"
+#include "Modules\Core\timer.c"
+#include "Modules\Core\velocityPID.c"
+#include "Modules\Core\velocityTBH.c"
 
 #endif //BULLDOG_CORE_INCLUDES_H_INCLUDED
