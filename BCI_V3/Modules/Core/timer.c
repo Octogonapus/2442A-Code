@@ -5,8 +5,8 @@
 
 long timer_GetDT(timer* timer)
 {
-	long dt = time1[T1] - timer->lastCalled;
-	timer->lastCalled = time1[T1];
+	long dt = nSysTime - timer->lastCalled;
+	timer->lastCalled = nSysTime;
 	return dt;
 }
 
@@ -22,7 +22,7 @@ long timer_GetDTFromStart(timer* timer)
 
 void timer_Initialize(timer* timer)
 {
-	timer->firstCalled = time1[T1];
+	timer->firstCalled = nSysTime;
 	timer->lastCalled = 0;
 }
 

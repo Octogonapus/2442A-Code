@@ -49,10 +49,11 @@ bool endPreAuton = false;
 //The autonomous program to run
 int autonSelection = -1;
 
+#include "BCI_V3\Bulldog_Core_Includes.h"
+
 //Launcher PID controller
 vel_PID launcherPID;
-
-#include "BCI_V3\Bulldog_Core_Includes.h"
+vel_TBH launcherTBH;
 
 //Autonomous program file includes
 //#include "autonIncludes.h"
@@ -121,6 +122,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
+	vel_TBH_InitController(&launcherTBH, launcherQuad, 1, 70);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -265,7 +267,7 @@ task usercontrol()
 		sprintf(fullRpmString, "%d", launcherPOWER);
 		displayLCDCenteredString(0, fullRpmString);
 
-		sprintf(targetRpmString, "%1.2f", SensorValue[powerExpander] / 286.0);
+		sprintf(targetRpmString, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 		displayLCDCenteredString(1, targetRpmString);
 
 		/* ------------ DRIVETRAIN ------------ */
@@ -390,12 +392,14 @@ task usercontrol()
 
 				//Set the PID controller's target velocity to the new target velocity
 				launcherPID.targetVelocity = launcherTargetRPM;
+				vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
 
 				//Get the PID controller's output
 				//launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
-				launcherPID_OUT = vel_PID_StepController_ACCEL(&launcherPID);
+				//launcherPID_OUT = vel_PID_StepController_ACCEL(&launcherPID);
+				launcherPID_OUT = vel_TBH_StepController_VEL(&launcherTBH);
 
-				//Bound the PID controller's output to [0, 127] so the launcher's motors can't reverse
+				//Bound the PID controller's output to [0, inf) so the launcher's motors can't reverse
 				launcherPID_OUT = launcherPID_OUT < 0 ? 0 : launcherPID_OUT;
 			}
 			//If the PID controller should not step its calculations
