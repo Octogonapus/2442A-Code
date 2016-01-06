@@ -85,16 +85,15 @@ task printBatteryVoltage
 //Technik3k's code
 task logFlywheel
 {
-  float w=0, w2=0;
-  motor[fw1] = 127;
-  clearDebugStream();
+  float w = 0, w2 = 0;
+
   while(true)
   {
-	int wIME = getMotorVelocity(fw1);
-	w = (3*w + wIME)/4; // smooth velocity estimate
-	writeDebugStreamLine("%.3f\t%.1f\t%i\t%.2f\t%.2f", nPgmTime / 1000.0, nImmediateBatteryLevel / 100.0, wIME, w, (w - w2) * 10);
-	wait1Msec(5);
-	w2 = w;
+		int wIME = 0;
+		w = (3 * w + wIME) / 4; // smooth velocity estimate
+		writeDebugStreamLine("%.3f\t%.1f\t%i\t%.2f\t%.2f", nPgmTime / 1000.0, nImmediateBatteryLevel / 100.0, wIME, w, (w - w2) * 10);
+		wait1Msec(5);
+		w2 = w;
   }
 }
 

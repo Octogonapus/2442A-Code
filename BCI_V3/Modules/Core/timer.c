@@ -3,6 +3,12 @@
 
 #include "timer.h"
 
+void timer_Initialize(timer* timer)
+{
+	timer->firstCalled = nSysTime;
+	timer->lastCalled = 0;
+}
+
 long timer_GetDT(timer* timer)
 {
 	long dt = nSysTime - timer->lastCalled;
@@ -18,12 +24,6 @@ long timer_GetStartingTime(timer* timer)
 long timer_GetDTFromStart(timer* timer)
 {
 	return time1[T1] - timer->firstCalled;
-}
-
-void timer_Initialize(timer* timer)
-{
-	timer->firstCalled = nSysTime;
-	timer->lastCalled = 0;
 }
 
 #endif //TIMER_C_INCLUDED

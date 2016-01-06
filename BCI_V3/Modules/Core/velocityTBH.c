@@ -25,7 +25,7 @@ void vel_TBH_InitController(vel_TBH* tbh, tSensors sensor, float gain, float out
 	tbh->outVal = 0.0;
 }
 
-void vel_TBH_SetTargetVelocity(vel_TBH* tbh, int targetVelocity, float outValApprox = -1010)
+void vel_TBH_SetTargetVelocity(vel_TBH* tbh, int targetVelocity, float outValApprox)
 {
 	tbh->targetVelocity = targetVelocity;
 	tbh->firstCross = true;
