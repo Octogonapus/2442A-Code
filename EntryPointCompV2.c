@@ -411,7 +411,7 @@ task usercontrol()
 
 			//Handle shifter state
 			shifterEngaged_Manual = false;
-			SensorValue[shifter] = 1;
+			shiftGear(1);
 
 			/*if (launcherPID_OUT > 0)
 			{
@@ -445,7 +445,7 @@ task usercontrol()
 			//If shifter was manually engaged, ignore automatic setting
 			if (!shifterEngaged_Manual)
 			{
-				SensorValue[shifter] = 0;
+				shiftGear(0);
 			}
 		}
 
@@ -495,7 +495,7 @@ task usercontrol()
 		//Invert the shifter's state
 		if (vexRT[JOY_BTN_LR])
 		{
-			SensorValue[shifter] = SensorValue[shifter] == 1 ? 0 : 1;
+			shiftGear();
 			shifterEngaged_Manual = true;
 
 			//Wait for the button to be released before continuing

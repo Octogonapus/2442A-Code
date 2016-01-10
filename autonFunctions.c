@@ -81,6 +81,31 @@ void initializeSensors()
 
 /***************************************************************************/
 /*                                                                         */
+/* Subroutine - Shifts gear in the transmission                            */
+/*                                                                         */
+/***************************************************************************/
+void shiftGear(int gear = -1010)
+{
+	setAllDriveMotors(127);
+	switch (gear)
+	{
+		case 0:
+			SensorValue[shifter] = 0;
+
+		case 1:
+			SensorValue[shifter] = 1;
+
+		default:
+			SensorValue[shifter] = SensorValue[shifter] == 1 ? 0 : 1;
+	}
+	wait1Msec(5);
+	setAllDriveMotors(-127);
+	wait1Msec(5);
+	setAllDriveMotors(0);
+}
+
+/***************************************************************************/
+/*                                                                         */
 /* Subroutine - Drives for time in milliseconds                            */
 /*                                                                         */
 /***************************************************************************/
