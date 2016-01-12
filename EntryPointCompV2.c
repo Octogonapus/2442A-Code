@@ -1,3 +1,4 @@
+#pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Sensor, in1,    powerExpander,  sensorAnalog)
 #pragma config(Sensor, in2,    gyro,           sensorGyro)
 #pragma config(Sensor, in3,    accelX,         sensorAccelerometer)
@@ -11,13 +12,15 @@
 #pragma config(Sensor, dgtl7,  rightDriveQuad, sensorQuadEncoder)
 #pragma config(Sensor, dgtl11, intakeLimit,    sensorTouch)
 #pragma config(Sensor, dgtl12, pidMathLight,   sensorDigitalOut)
+#pragma config(Sensor, I2C_1,  leftBankIME,    sensorQuadEncoderOnI2CPort,    , AutoAssign )
+#pragma config(Sensor, I2C_2,  rightBankIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Motor,  port1,           intakeFront,   tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           leftDriveBottomFront, tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port3,           leftDriveBottomBack, tmotorVex393_MC29, openLoop, reversed)
+#pragma config(Motor,  port3,           leftDriveBottomBack, tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_1)
 #pragma config(Motor,  port4,           leftDriveTopFront, tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port5,           leftDriveTopBack, tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port6,           rightDriveBottomFront, tmotorVex393_MC29, openLoop, reversed)
-#pragma config(Motor,  port7,           rightDriveBottomBack, tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port7,           rightDriveBottomBack, tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
 #pragma config(Motor,  port8,           rightDriveTopFront, tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port9,           rightDriveTopBack, tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port10,          intakeBack,    tmotorVex393_HBridge, openLoop, reversed)
@@ -264,7 +267,8 @@ task usercontrol()
 		bLCDBacklight = true;
 
 		//sprintf(fullRpmString, "%1.2f", launcherPID.currentVelocity);
-		sprintf(fullRpmString, "%d", launcherPOWER);
+		//sprintf(fullRpmString, "%d", launcherPOWER);
+		sprintf(fullRpmString, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
 		displayLCDCenteredString(0, fullRpmString);
 
 		sprintf(targetRpmString, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
