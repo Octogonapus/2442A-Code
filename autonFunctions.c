@@ -13,6 +13,7 @@
 #define setRightDriveMotors(power) setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDriveTopFront, power); setMotorSpeed(rightDriveTopBack, power)
 #define setAllDriveMotors(power) setLeftDriveMotors(power); setRightDriveMotors(power)
 #define setIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
+#define setAllDriveMotorsSlewRate(rate) setMotorSlew(leftDriveBottomFront, rate); setMotorSlew(leftDriveBottomBack, rate); setMotorSlew(leftDriveTopFront, rate); setMotorSlew(leftDriveTopBack, rate); setMotorSlew(rightDriveBottomFront, rate); setMotorSlew(rightDriveBottomBack, rate); setMotorSlew(rightDriveTopFront, rate); setMotorSlew(rightDriveTopBack, rate)
 
 #define setLeftDriveMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDriveTopFront] = power; motor[leftDriveTopBack] = power
 #define setRightDriveMotorsRaw(power) motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDriveTopFront] = power; motor[rightDriveTopBack] = power
@@ -68,8 +69,6 @@ void initializeSensors()
 	SensorValue[leftDriveQuad] = 0;
 	_sensorResetTypeTo(rightDriveQuad, sensorQuadEncoder);
 	SensorValue[rightDriveQuad] = 0;
-	_sensorResetTypeTo(pidMathLight, sensorDigitalOut);
-	SensorValue[pidMathLight] = LED_OFF;
 
 	writeDebugStreamLine("calibrating gyro");
 	SensorType[gyro] = sensorNone;
@@ -86,7 +85,6 @@ void initializeSensors()
 /***************************************************************************/
 void shiftGear(int gear = -1010)
 {
-	setAllDriveMotors(127);
 	switch (gear)
 	{
 		case 0:
@@ -98,10 +96,11 @@ void shiftGear(int gear = -1010)
 		default:
 			SensorValue[shifter] = SensorValue[shifter] == 1 ? 0 : 1;
 	}
-	wait1Msec(5);
-	setAllDriveMotors(-127);
-	wait1Msec(5);
-	setAllDriveMotors(0);
+	setAllDriveMotorsRaw(127);
+	wait1Msec(20);
+	setAllDriveMotorsRaw(-127);
+	wait1Msec(20);
+	setAllDriveMotorsRaw(0);
 }
 
 /***************************************************************************/
@@ -579,7 +578,7 @@ void launchFourBalls(int target)
 
 	auton_maintainLauncher_target = target;
 	startTask(maintainLauncherForAuton);
-	
+
 	//If launcher velocity is in acceptable bounds
 	if (launcherPID.targetVelocity < target + 10 && launcherPID.targetVelocity > target - 10)
 	{

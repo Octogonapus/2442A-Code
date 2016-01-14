@@ -53,16 +53,6 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 	//Calculate new outVal
 	tbh->outVal = tbh->outVal + (tbh->error * tbh->gain);
 
-	//Bound outVal domain to [0, 127]
-	if (tbh->outVal < 0)
-	{
-		tbh->outVal = 0;
-	}
-	else if (tbh->outVal > 127)
-	{
-		tbh->outVal = 127;
-	}
-
 	//Check for zero crossing on error term
 	if (sgn(tbh->error) != sgn(tbh->prevError))
 	{

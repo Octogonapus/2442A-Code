@@ -11,10 +11,9 @@
 #pragma config(Sensor, dgtl5,  leftDriveQuad,  sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  rightDriveQuad, sensorQuadEncoder)
 #pragma config(Sensor, dgtl11, intakeLimit,    sensorTouch)
-#pragma config(Sensor, dgtl12, pidMathLight,   sensorDigitalOut)
 #pragma config(Sensor, I2C_1,  leftBankIME,    sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  rightBankIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Motor,  port1,           intakeFront,   tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port1,           intakeFront,   tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port2,           leftDriveBottomFront, tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           leftDriveBottomBack, tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_1)
 #pragma config(Motor,  port4,           leftDriveTopFront, tmotorVex393_MC29, openLoop, reversed)
@@ -125,7 +124,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, launcherQuad, 1, 70);
+	vel_TBH_InitController(&launcherTBH, launcherQuad, 1, 90);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -249,36 +248,37 @@ task usercontrol()
 
 	//Launcher variables
 	bool launcherOn = false, stepController = true;
-	int launcherTargetRPM = 0, launcherPOWER = 70, launcherPID_OUT = 0;
+	int launcherTargetRPM = 0, launcherPOWER = 70, launcherPID_OUT = 0, launcherCurrentPower = 0;
 	const int launcherRPMIncrement = 10;
-
-	//Transmission variables
-	bool shifterEngaged_Manual = false;
 
 	startTask(motorSlewRateTask);
 	startTask(monitorRPM);
 
 	bLCDBacklight = true;
 
-	string rpmString, fullRpmString, targetRpmString;
+	string line1String, line2String;
 
 	while (true)
 	{
 		bLCDBacklight = true;
 
-		//sprintf(fullRpmString, "%1.2f", launcherPID.currentVelocity);
-		//sprintf(fullRpmString, "%d", launcherPOWER);
-		sprintf(fullRpmString, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
-		displayLCDCenteredString(0, fullRpmString);
+		sprintf(line1String, "LCV: %1.2f", launcherTBH.currentVelocity);
+		//sprintf(line1String, "%d", launcherPOWER);
+		//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
+		displayLCDCenteredString(0, line1String);
 
-		sprintf(targetRpmString, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
-		displayLCDCenteredString(1, targetRpmString);
+		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
+		sprintf(line2String, "LCP: %d", launcherCurrentPower);
+		displayLCDCenteredString(1, line2String);
 
 		/* ------------ DRIVETRAIN ------------ */
 
 		//If the launcher is not on
 		if (!launcherOn)
 		{
+			//Change drive motors' slew rate back to normal after launcher control
+			setAllDriveMotorsSlewRate(MOTOR_FAST_SLEW_RATE);
+
 			//Grab values from joystick
 			leftV = vexRT[JOY_JOY_LV];
 			rightV = vexRT[JOY_JOY_RV];
@@ -391,12 +391,9 @@ task usercontrol()
 			//If the PID controller should step its calculations
 			if (stepController)
 			{
-				//Turn on an LED to show the driver the PID controller is stepping its calculations
-				SensorValue[pidMathLight] = LED_ON;
-
+				/*
 				//Set the PID controller's target velocity to the new target velocity
 				launcherPID.targetVelocity = launcherTargetRPM;
-				vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
 
 				//Get the PID controller's output
 				//launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
@@ -405,37 +402,22 @@ task usercontrol()
 
 				//Bound the PID controller's output to [0, inf) so the launcher's motors can't reverse
 				launcherPID_OUT = launcherPID_OUT < 0 ? 0 : launcherPID_OUT;
-			}
-			//If the PID controller should not step its calculations
-			else
-			{
-				//Turn off an LED to show the driver the PID controller is not stepping its calculations
-				SensorValue[pidMathLight] = LED_OFF;
-			}
+				*/
 
-			//Handle shifter state
-			shifterEngaged_Manual = false;
-			shiftGear(1);
+				//Set the TBH controller's target velocity to the new target velocity
+				vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
 
-			/*if (launcherPID_OUT > 0)
-			{
-				setAllDriveMotors(127);
-			}
-			else if (launcherPID_OUT < 0)
-			{
-				setAllDriveMotors(-127);
+				//Step the TBH controller and get the output
+				launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
+
+				//Bound the TBH controller's output to (-inf, 0] so the launcher's motors always run in the correct direction
+				launcherCurrentPower = launcherCurrentPower > 0 ? 0 : launcherCurrentPower;
 			}
 
-			setMotorSlew(leftDriveBottomFront, launcherPID_OUT);
-			setMotorSlew(leftDriveBottomBack, launcherPID_OUT);
-			setMotorSlew(leftDriveTopFront, launcherPID_OUT);
-			setMotorSlew(leftDriveTopBack, launcherPID_OUT);
-			setMotorSlew(rightDriveBottomFront, launcherPID_OUT);
-			setMotorSlew(rightDriveBottomBack, launcherPID_OUT);
-			setMotorSlew(rightDriveTopFront, launcherPID_OUT);
-			setMotorSlew(rightDriveTopBack, launcherPID_OUT);*/
+			//Set motors to low slew rate to minimize torque on launcher
+			setAllDriveMotorsSlewRate(0.7);
 
-			setAllDriveMotors(launcherPOWER);
+			setAllDriveMotors(launcherCurrentPower);
 		}
 		//If the launcher should not run
 		else
@@ -445,12 +427,6 @@ task usercontrol()
 
 			//Reset the output
 			launcherPID.outVal = 0.0;
-
-			//If shifter was manually engaged, ignore automatic setting
-			if (!shifterEngaged_Manual)
-			{
-				shiftGear(0);
-			}
 		}
 
 		//Launcher speed targets
@@ -500,7 +476,6 @@ task usercontrol()
 		if (vexRT[JOY_BTN_LR])
 		{
 			shiftGear();
-			shifterEngaged_Manual = true;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_LR]);

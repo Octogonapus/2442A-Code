@@ -8,15 +8,17 @@
                                        //that could result in a bug where a motor is not accessible
 #define MOTOR_MIN_VALUE         (-127) //Minimum power
 #define MOTOR_MAX_VALUE         127    //Maximum power
-#define MOTOR_DEFAULT_SLEW_RATE 10     //Feels like almost no slewing to a driver
-#define MOTOR_FAST_SLEW_RATE    256    //Basically no slew rate
+#define MOTOR_DEFAULT_SLEW_RATE 10     //Feels like nearly no slewing to a driver
+#define MOTOR_FAST_SLEW_RATE    256    //No slewing in output
 #define MOTOR_TASK_DELAY        15     //Wait 15ms between batch motor power updates
 
 //Motor control
 #define setMotorSpeed(index, power) driveMotors[index].reqSpeed = (power)
-#define setMotorSlew(index, slew) driveMotors[index].slew = (slew)
+#define setMotorSlew(index, rate) driveMotors[index].slew = (rate)
 #define getMotor(index) driveMotors[index]
 #define getMotorSpeed(index) driveMotors[index].reqSpeed
+#define setMotorActive(index) driveMotors[index].active = true
+#define setMotorInactive(index) driveMotors[index].active = false
 
 //Raw motor control
 #define setMotorSpeedRaw(index, power) motor[index] = (power)
