@@ -3,7 +3,15 @@
 
 #include "filter.h"
 
-float filter_SMA(SMAFilter *filter, float readIn, float alpha)
+float filter_Init_SMA(SMAFilter *filter)
+{
+	filter->alpha = 1.0;
+	filter->readIn = 0.0;
+	filter->output = 0.0;
+	filter->outout_old = 0.0;
+}
+
+float filter_SMA(SMAFilter *filter, const float readIn, const float alpha)
 {
 	filter->alpha = alpha;
 	filter->readIn = readIn;
@@ -22,11 +30,19 @@ void filter_Init_TUA(TUAFilter *filter)
 	}
 }
 
-float filter_TUAFilter(TUAFilter *filter, float componentIn)
+float filter_TUAFilter(TUAFilter *filter, const float componentIn)
 {
 	filter->components[filter->index] = componentIn;
-	filter->index = filter->index + 1 >= 10 ? 0 : filter->index + 1;
-	return filter->components[filter->index - 1 < 0 ? 9 : filter->index - 1];
+	filter->index = filter->index + 1 > 9 ? 0 : filter->index + 1;
+
+	float avg = 0.0;
+
+	for (int i = 0; i < 10; i++)
+	{
+		avg += filter->components[i];
+	}
+
+	return avg / 10.0;
 }
 
 #endif //FILTER_C_INCLUDED
