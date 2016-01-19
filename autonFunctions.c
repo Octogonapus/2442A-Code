@@ -96,11 +96,52 @@ void shiftGear(int gear = -1010)
 		default:
 			SensorValue[shifter] = SensorValue[shifter] == 1 ? 0 : 1;
 	}
-	setAllDriveMotorsRaw(127);
-	wait1Msec(20);
-	setAllDriveMotorsRaw(-127);
-	wait1Msec(20);
+
+	wait1Msec(300);
+
+	setAllDriveMotorsRaw(60);
+	wait1Msec(100);
+	setAllDriveMotorsRaw(-60);
+	wait1Msec(100);
+
+	setAllDriveMotorsRaw(60);
+	wait1Msec(100);
+	setAllDriveMotorsRaw(-60);
+	wait1Msec(100);
+
+	setAllDriveMotorsRaw(60);
+	wait1Msec(100);
+	setAllDriveMotorsRaw(-60);
+	wait1Msec(100);
+
 	setAllDriveMotorsRaw(0);
+}
+
+int iBaySpeedMaintainRate = 0;
+task maintainMotorBaySpeed()
+{
+	vel_PID leftDrivePID, rightDrivePID;
+	int leftDriveVal, rightDriveVal;
+
+	vel_PID_InitController(&leftDrivePID, 0, 1, 0, 0, 30, 50);
+	vel_PID_InitController(&rightDrivePID, 0, 1, 0, 0, 30, 50);
+
+	while (true)
+	{
+		leftDrivePID.targetVelocity = iBaySpeedMaintainRate;
+		rightDrivePID.targetVelocity = iBaySpeedMaintainRate;
+
+		leftDriveVal = vel_PID_StepController_VEL(&leftDrivePID, getMotorVelocity(leftDriveBottomBack));
+		rightDriveVal = vel_PID_StepController_VEL(&rightDrivePID, getMotorVelocity(rightDriveBottomBack));
+
+		leftDriveVal = leftDriveVal < 0 ? 0 : leftDriveVal;
+		rightDriveVal = rightDriveVal < 0 ? 0 : rightDriveVal;
+
+		setLeftDriveMotorsRaw(-leftDriveVal);
+		setRightDriveMotorsRaw(-rightDriveVal);
+
+		wait1Msec(5);
+	}
 }
 
 /***************************************************************************/

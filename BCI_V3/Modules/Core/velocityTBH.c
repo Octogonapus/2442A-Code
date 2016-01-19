@@ -46,6 +46,7 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 	//Calculate current velocity
 	tbh->currentVelocity = (SensorValue[tbh->sensor] - tbh->prevPosition) * (TBH_DEGPMS_TO_RPM / (tbh->dt * 1000));
 	tbh->prevPosition = SensorValue[tbh->sensor];
+	tbh->currentVelocity = getMotorVelocity(leftDriveBottomBack);
 
 	//Calculate error
 	tbh->error = tbh->targetVelocity - tbh->currentVelocity;

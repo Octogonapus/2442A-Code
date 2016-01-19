@@ -102,6 +102,40 @@ int vel_PID_StepController_VEL(vel_PID* pid)
 	return pid->outVal;
 }
 
+int vel_PID_StepController_VEL(vel_PID* pid, int currentVelocity)
+{
+	//Calculate timestep
+	pid->dt = (time1[T1] - pid->prevTime) + 1;
+	pid->prevTime = time1[T1];
+
+	pid->currentVelocity = currentVelocity;
+
+	//Calculate error
+	pid->error = pid->targetVelocity - pid->currentVelocity;
+
+	//If error is larger than the error sum threshold, calculate integral
+	if (abs(pid->error) < pid->errorSumThreshold)
+	{
+		pid->integral += pid->error * pid->dt;
+	}
+
+	//Limit integral to avoid windup
+	if (abs(pid->integral) > pid->integralCap)
+	{
+		pid->integral = pid->integralCap;
+	}
+
+	//Calculate derivative
+	pid->derivative = (pid->error - pid->prevError) / pid->dt;
+	pid->prevError = pid->error;
+
+	//Sum outVal to instead compute the change in velocity
+	//pid->outVal += (pid->error * pid->kP) + (pid->integral * pid->kI) + (pid->derivative * pid->kD);
+	pid->outVal = (pid->targetVelocity / PID_SCALE) + (pid->error * pid->kP);
+
+	return pid->outVal;
+}
+
 int vel_PID_StepController_ACCEL(vel_PID *pid)
 {
 	//Calculate timestep

@@ -262,13 +262,14 @@ task usercontrol()
 	{
 		bLCDBacklight = true;
 
-		sprintf(line1String, "LCV: %1.2f", launcherTBH.currentVelocity);
-		//sprintf(line1String, "%d", launcherPOWER);
-		//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
+		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
+		sprintf(line2String, "%d", launcherPOWER);
+		sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
 		displayLCDCenteredString(0, line1String);
 
 		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
-		sprintf(line2String, "LCP: %d", launcherCurrentPower);
+		//sprintf(line2String, "CP:%d", launcherCurrentPower);
+		//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
 		displayLCDCenteredString(1, line2String);
 
 		/* ------------ DRIVETRAIN ------------ */
@@ -388,6 +389,9 @@ task usercontrol()
 		//If the launcher should run
 		if (launcherOn)
 		{
+			//Synchronize motor bays
+			//startTask(maintainMotorBaySpeed);
+
 			//If the PID controller should step its calculations
 			if (stepController)
 			{
@@ -411,17 +415,19 @@ task usercontrol()
 				launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
 
 				//Bound the TBH controller's output to (-inf, 0] so the launcher's motors always run in the correct direction
-				launcherCurrentPower = launcherCurrentPower > 0 ? 0 : launcherCurrentPower;
+				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 			}
 
 			//Set motors to low slew rate to minimize torque on launcher
 			setAllDriveMotorsSlewRate(0.7);
-
-			setAllDriveMotors(launcherCurrentPower);
+			iBaySpeedMaintainRate = -launcherCurrentPower;
+			setAllDriveMotors(-launcherPOWER);
 		}
 		//If the launcher should not run
 		else
 		{
+			//stopTask(maintainMotorBaySpeed);
+
 			//Keep setting the PID controller's current velocity without stepping itself
 			launcherPID.currentVelocity = 0.0;
 
@@ -433,7 +439,7 @@ task usercontrol()
 		//Full field shot
 		if (vexRT[JOY_BTN_RL])
 		{
-			launcherTargetRPM = 203;
+			launcherTargetRPM = 40;
 			launcherPOWER = 70;
 
 			//Wait for the button to be released before continuing
@@ -443,7 +449,7 @@ task usercontrol()
 		//Half field shot
 		if (vexRT[JOY_BTN_RR])
 		{
-			launcherTargetRPM = 140;
+			launcherTargetRPM = 60;
 			launcherPOWER = 60;
 
 			//Wait for the button to be released before continuing
@@ -475,6 +481,13 @@ task usercontrol()
 		//Invert the shifter's state
 		if (vexRT[JOY_BTN_LR])
 		{
+			//Do not allow a shift while the launcher is running
+			//The robot risks signifigant damage
+			if (launcherOn)
+			{
+				launcherOn = false;
+			}
+
 			shiftGear();
 
 			//Wait for the button to be released before continuing

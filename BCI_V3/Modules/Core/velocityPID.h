@@ -51,6 +51,9 @@ int vel_PID_StepController_POS(vel_PID* pid);
 //Steps the controller's calculations (velocity based)
 int vel_PID_StepController_VEL(vel_PID* pid);
 
+//Steps the controller's calculations (velocity based)
+int vel_PID_StepController_VEL(vel_PID* pid, int currentVelocity);
+
 //Steps the controller's calculations (acceleration based)
 int vel_PID_StepController_ACCEL(vel_PID *pid);
 
