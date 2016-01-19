@@ -8,7 +8,7 @@ float filter_Init_SMA(SMAFilter *filter)
 	filter->alpha = 1.0;
 	filter->readIn = 0.0;
 	filter->output = 0.0;
-	filter->outout_old = 0.0;
+	filter->output_old = 0.0;
 }
 
 float filter_SMA(SMAFilter *filter, const float readIn, const float alpha)
