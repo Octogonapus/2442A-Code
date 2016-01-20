@@ -24,6 +24,10 @@
 #define setInsideIntakeMotorsRaw(power) motors[intakeBack] = power
 #define setAllIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
 
+//Deprecated
+#define setIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
+#define setIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
+
 //Sensor redo
 #define _sensorResetTypeTo(sensor, type) SensorType[sensor] = sensorNone; SensorType[sensor] = type
 
@@ -94,7 +98,7 @@ int selectAutonomous()
 	int autonColor = 1, autonTile = 1, autonLevel = 1;
 	string autonColorString. autonTileString, autonLevelString;
 
-	sprintf(specifier, "C, T, L");
+	sprintf(specifier, "Clr, Tl, Lvl");
 
 	while (true)
 	{
@@ -108,18 +112,6 @@ int selectAutonomous()
 		//Center button changes auton tile or exits
 		if (nLCDButtons & kButtonCenter)
 		{
-			int startTime = time1[T1];
-
-			while (nLCDButtons & kButtonCenter)
-			{
-				if (time1[T1] > startTime + 250)
-				{
-					return (autonColor * 100) +(autonTile * 10) + autonLevelString;
-				}
-
-				wait1Msec(5);
-			}
-
 			autonTile = autonTIle == 1 ? 2 : 1;
 			autonTileString = autonTile == 1 ? "Left" : "Right";
 		}
@@ -131,15 +123,26 @@ int selectAutonomous()
 
 			if (autonLevel == 1)
 			{
-				autonTileString = "Primary";
+				autonLevelString = "Pri";
 			}
 			else if (autonLevel == 2)
 			{
-				autonTileString = "Secondary";
+				autonLevelString = "Sec";
 			}
 			else
 			{
-				autonTileString = "Tertiary";
+				autonLevelString = "Ter";
+			}
+
+			int startTime = time1[T1];
+			while (nLCDButtons & kButtonRight)
+			{
+				if (time1[T1] > startTime + 250)
+				{
+					return (autonColor * 100) + (autonTile * 10) + autonLevel;
+				}
+
+				wait1Msec(5);
 			}
 		}
 
@@ -660,6 +663,91 @@ task monitorRPM
 
 		wait1Msec(25);
 	}
+}
+
+//Author: JPearman
+/*-----------------------------------------------------------------------------*/
+/** @brief      Calculate velocity                                             */
+/** @param[in]  port the motor port                                            */
+/** @param[in]  gear_ratio external gear ratio                                 */
+/** @returns    The motor velocity (optionally) multiplied by constant         */
+/*-----------------------------------------------------------------------------*/
+/*
+ * @details
+ *  The best way to calculate velocity without the addition of complex filtering.
+ *  This function understands which type of motor is configured, uses the 
+ *  timestamp that ROBOTC adds to each encoder reading and filters the final
+ *  velocity to remove some of the noise.
+ *
+ *  The calculated motor speed is multiplied by any external gear ratio to
+ *  obtain the angular velocity of, for example, a flywheel.
+ *
+ */
+float
+calculateVelocityBest( tMotor port, float gear_ratio = 1.0 )
+{
+    static  long  encoder_time_last = 0;
+    static  long  encoder_counts_last;
+    static  float ticks_per_rev;
+
+    int     delta_ms;
+    int     delta_enc;
+    long    encoder_time;
+    long    encoder_counts;
+    static  float   motor_velocity;
+    float   motor_velocity_t;
+
+    // First time is undefined
+    // save last values and exit
+    if( encoder_time_last == 0 ) {
+      // first read to get initial values
+      getEncoderAndTimeStamp( port, encoder_counts_last, encoder_time_last );
+
+      // What sort of motor is connected
+      // If the type of motor is set we assume it has an IME, otherwise we 
+      // revert to a quad encoder.
+      if( motorType[ port ] == tmotorVex393_HBridge || motorType[ port ] == tmotorVex393_MC29 )
+        ticks_per_rev = SMLIB_TPR_393Torque;
+      else
+      if( motorType[ port ] == tmotorVex393HighSpeed_HBridge || motorType[ port ] == tmotorVex393HighSpeed_MC29 )
+        ticks_per_rev = SMLIB_TPR_393Speed;
+      if( motorType[ port ] == tmotorVex393TurboSpeed_HBridge || motorType[ port ] == tmotorVex393TurboSpeed_MC29 )
+        ticks_per_rev = SMLIB_TPR_393Turbo;
+      else
+        ticks_per_rev = SMLIB_TPR_393Quad;
+      
+      return(0.0);
+    }
+
+    // Get current encoder value
+    encoder_counts = nMotorEncoder[ port ];
+    getEncoderAndTimeStamp( port, encoder_counts, encoder_time );
+
+    // calculate the time since the last encoder poll
+    delta_ms = encoder_time - encoder_time_last;
+    encoder_time_last = encoder_time;
+
+    // Change in encoder count
+    delta_enc = (encoder_counts - encoder_counts_last);
+
+    // save last position
+    encoder_counts_last = encoder_counts;
+
+    // Calculate velocity in rpm
+    motor_velocity_t = (1000.0 / delta_ms) * delta_enc * 60.0 / ticks_per_rev;
+
+    // filter if we are running quickly (< 100mS loop speed)
+    if( delta_ms < 100 )
+      motor_velocity = (motor_velocity * 0.7) + (motor_velocity_t * 0.3);
+    else
+      motor_velocity = motor_velocity_t;
+    
+    // IIR filter means velocity will just keep getting smaller, clip if really low.
+    if(motor_velocity < 0.01)
+      motor_velocity = 0;
+
+    // multiply by any gear ratio's being used
+    return( motor_velocity * gear_ratio );
 }
 
 int auton_maintainLauncher_target = 200;
