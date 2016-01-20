@@ -10,6 +10,7 @@
 #pragma config(Sensor, dgtl4,  shifter,        sensorDigitalOut)
 #pragma config(Sensor, dgtl5,  leftDriveQuad,  sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  rightDriveQuad, sensorQuadEncoder)
+#pragma config(Sensor, dgtl9,  intakeUltra,    sensorSONAR_mm)
 #pragma config(Sensor, dgtl11, intakeLimit,    sensorTouch)
 #pragma config(Sensor, I2C_1,  leftBankIME,    sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  rightBankIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
@@ -168,6 +169,8 @@ task usercontrol()
 
 	while (true)
 	{
+		writeDebugStreamLine("%d", SensorValue[intakeUltra]);
+
 		bLCDBacklight = true;
 
 		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
