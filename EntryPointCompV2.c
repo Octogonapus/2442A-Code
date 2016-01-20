@@ -86,38 +86,6 @@ menu *batteryVoltageMenu;
 menu *powerExpanderVoltageMenu;
 menu *backupBatteryVoltageMenu;
 
-//Level 2 - Color Selection
-menu *redSideMenu;
-menu *blueSideMenu;
-
-//Level 3 - Tile Selection - Red
-menu *redLeftTileMenu;
-menu *redRightTileMenu;
-
-//Level 3 - Tile Selection - Blue
-menu *blueLeftTileMenu;
-menu *blueRightTileMenu;
-
-//Level 4 - Autonomous Selection - Red Left
-menu *redLeftAutonPrimaryMenu;
-menu *redLeftAutonSecondaryMenu;
-menu *redLeftAutonTertiaryMenu;
-
-//Level 4 - Autonomous Selection - Red Right
-menu *redRightAutonPrimaryMenu;
-menu *redRightAutonSecondaryMenu;
-menu *redRightAutonTertiaryMenu;
-
-//Level 4 - Autonomous Selection - Blue Left
-menu *blueLeftAutonPrimaryMenu;
-menu *blueLeftAutonSecondaryMenu;
-menu *blueLeftAutonTertiaryMenu;
-
-//Level 4 - Autonomous Selection - Blue Right
-menu *blueRightAutonPrimaryMenu;
-menu *blueRightAutonSecondaryMenu;
-menu *blueRightAutonTertiaryMenu;
-
 void pre_auton()
 {
 	bStopTasksBetweenModes = true;
@@ -143,7 +111,7 @@ void pre_auton()
 
 	//Menu system
 	//Level 1 - General Info
-	autonomousSelectionMenu = newMenu("Auton Menus");
+	autonomousSelectionMenu = newMenu("Select Auton", 42);
 	endPreAutonMenu = newMenu("Confirm", 1);
 
 	string batteryVoltage;
@@ -159,66 +127,6 @@ void pre_auton()
 	backupBatteryVoltageMenu = newMenu(backupBatteryVoltage);
 
 	linkMenus(autonomousSelectionMenu, endPreAutonMenu, backupBatteryVoltageMenu, powerExpanderVoltageMenu, batteryVoltageMenu);
-
-	//Level 2 - Color Selection
-	redSideMenu = newMenu("Red Side");
-	blueSideMenu = newMenu("Blue Side");
-
-	linkMenus(redSideMenu, blueSideMenu);
-
-	//Level 3 - Tile Selection - Red
-	redLeftTileMenu = newMenu("Left Tile");
-	redRightTileMenu = newMenu("Right Tile");
-
-	linkMenus(redLeftTileMenu, redRightTileMenu);
-
-
-	//Level 3 - Tile Selection - Blue
-	blueLeftTileMenu = newMenu("Left Tile");
-	blueRightTileMenu = newMenu("Right Tile");
-
-	linkMenus(blueLeftTileMenu, blueRightTileMenu);
-
-	//Level 4 - Autonomous Selection - Red Left
-	redLeftAutonPrimaryMenu = newMenu("Primary Auton", 111);
-	redLeftAutonSecondaryMenu = newMenu("Secondary Auton", 112);
-	redLeftAutonTertiaryMenu = newMenu("Tertiary Auton", 113);
-
-	linkMenus(redLeftAutonPrimaryMenu, redLeftAutonSecondaryMenu, redLeftAutonTertiaryMenu);
-
-	//Level 4 - Autonomous Selection - Red Right
-	redRightAutonPrimaryMenu = newMenu("Primary Auton", 121);
-	redRightAutonSecondaryMenu = newMenu("Secondary Auton", 122);
-	redRightAutonTertiaryMenu = newMenu("Tertiary Auton", 123);
-
-	linkMenus(redRightAutonPrimaryMenu, redRightAutonSecondaryMenu, redRightAutonTertiaryMenu);
-
-	//Level 4 - Autonomous Selection - Blue Left
-	blueLeftAutonPrimaryMenu = newMenu("Primary Auton", 211);
-	blueLeftAutonSecondaryMenu = newMenu("Secondary Auton", 212);
-	blueLeftAutonTertiaryMenu = newMenu("Tertiary Auton", 213);
-
-	linkMenus(blueLeftAutonPrimaryMenu, blueLeftAutonSecondaryMenu, blueLeftAutonTertiaryMenu);
-
-	//Level 4 - Autonomous Selection - Blue Right
-	blueRightAutonPrimaryMenu = newMenu("Primary Auton", 221);
-	blueRightAutonSecondaryMenu = newMenu("Secondary Auton", 222);
-	blueRightAutonTertiaryMenu = newMenu("Tertiary Auton", 223);
-
-	linkMenus(blueRightAutonPrimaryMenu, blueRightAutonSecondaryMenu, blueRightAutonTertiaryMenu);
-
-	//formLevel can only be called after all menus have been initialized
-	//Calling formLevel before initializing all menus can result in a null pointer error and system hardlock
-	formLevel(autonomousSelectionMenu, redSideMenu, blueSideMenu);
-
-	formLevel(redSideMenu, redLeftTileMenu, redRightTileMenu);
-	formLevel(blueSideMenu, blueLeftTileMenu, blueRightTileMenu);
-
-	formLevel(redLeftTileMenu, redLeftAutonPrimaryMenu, redLeftAutonSecondaryMenu, redLeftAutonTertiaryMenu);
-	formLevel(redRightTileMenu, redRightAutonPrimaryMenu, redRightAutonSecondaryMenu, redRightAutonTertiaryMenu);
-
-	formLevel(blueLeftTileMenu, blueLeftAutonPrimaryMenu, blueLeftAutonSecondaryMenu, blueLeftAutonTertiaryMenu);
-	formLevel(blueRightTileMenu, blueRightAutonPrimaryMenu, blueRightAutonSecondaryMenu, blueRightAutonTertiaryMenu);
 
 	bLCDBacklight = true;
 	startTask(updateLCDTask);
@@ -295,65 +203,48 @@ task usercontrol()
 
 		/* -------------- INTAKE -------------- */
 
-		//If the intake should turn inwards
+		//Outside intake should turn inwards
 		if (vexRT[JOY_TRIG_LD])
 		{
-			//After exiting this conditional, the intake will have been running inwards
-			intake_prevStateIn = true;
-
-			/*
-			//If a ball is waiting to launch
-			if (SensorValue[intakeLimit])
-			{
-				//First time the limit has been hit since a launch
-				if (intakeLastTime == 0)
-				{
-					intakeLastTime = time1[T1];
-				}
-				//If the timeout has expired
-				else if (time1[T1] - intakeLastTime >= intakeTimeoutMs)
-				{
-					setIntakeMotors(127);
-				}
-
-				//If the launcher is at the correct speed
-				if (leftRPM >= launcherTargetRPM - 20 || rightRPM >= launcherTargetRPM - 20)
-				{
-					setIntakeMotors(127);
-				}
-				else
-				{
-					setIntakeMotors(0);
-				}
-			}
-			//Ball is not waiting to launch
-			else
-			{
-				setIntakeMotors(127);
-			}
-			*/
-			setIntakeMotors(127);
+			setOutsideIntakeMotors(127);
 		}
-		//If the intake should turn outwards
-		else if (vexRT[JOY_TRIG_LU])
+		//Outside intake should turn outwards
+		else if (vexRT[JOY_BTN_LU])
 		{
-			//Reverse the intake
-			setIntakeMotors(-127);
+			setOutsideIntakeMotors(-127);
 		}
-		//If the intake should not run
+		//Outisde intake should not run
+		else
+		{
+			setOutsideIntakeMotors(0);
+		}
+
+		//Inside intake should turn inwards
+		if (vexRT[JOY_TRIG_LU])
+		{
+			//After exiting this conditional, the intake will have been running inwards so set the flag
+			intake_prevStateIn = true;
+			setInsideIntakeMotors(127);
+		}
+		//Inside intake should turn outwards
+		else if (vexRT[JOY_BTN_LD])
+		{
+			setInsideIntakeMotors(-127);
+		}
+		//Inside intake should not run
 		else
 		{
 			//If the intake was previously turning intwards, stop it from drifting
 			if (intake_prevStateIn)
 			{
 				//Send a backwards jolt to the intake
-				setIntakeMotors(-127);
+				setInsideIntakeMotors(-127);
 				wait1Msec(40);
-				setIntakeMotors(127);
+				setInsideIntakeMotors(127);
 				wait1Msec(10);
 
 				//Stop the intake
-				setIntakeMotors(0);
+				setInsideIntakeMotors(0);
 
 				//After exiting this conditional, the intake will not have been running
 				intake_prevStateIn = false;
@@ -362,7 +253,7 @@ task usercontrol()
 			else
 			{
 				//Stop the intake
-				setIntakeMotors(0);
+				setInsideIntakeMotors(0);
 			}
 		}
 
@@ -440,7 +331,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RL])
 		{
 			launcherTargetRPM = 40;
-			launcherPOWER = 70;
+			launcherPOWER = 60;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RL]);
@@ -450,7 +341,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RR])
 		{
 			launcherTargetRPM = 60;
-			launcherPOWER = 60;
+			launcherPOWER = 50;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RR]);
@@ -486,8 +377,12 @@ task usercontrol()
 			if (launcherOn)
 			{
 				launcherOn = false;
+
+				//Semi e-stop motors
+				setAllDriveMotorsRaw(0);
 			}
 
+			//Shift gear
 			shiftGear();
 
 			//Wait for the button to be released before continuing
@@ -576,8 +471,8 @@ void invoke(int func)
 		endPreAuton = true;
 		stopTask(updateLCDTask);
 	}
-	else
+	else if (func == 42)
 	{
-		autonSelection = func;
+		autonSelection = selectAutonomous();
 	}
 }

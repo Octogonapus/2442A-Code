@@ -12,13 +12,17 @@
 #define setLeftDriveMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDriveTopFront, power); setMotorSpeed(leftDriveTopBack, power)
 #define setRightDriveMotors(power) setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDriveTopFront, power); setMotorSpeed(rightDriveTopBack, power)
 #define setAllDriveMotors(power) setLeftDriveMotors(power); setRightDriveMotors(power)
-#define setIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
+#define setOutsideIntakeMotors(power) setMotorSpeed(intakeFront, power)
+#define setInsideIntakeMotors(power) setMotorSpeed(intakeBack, power)
+#define setAllIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
 #define setAllDriveMotorsSlewRate(rate) setMotorSlew(leftDriveBottomFront, rate); setMotorSlew(leftDriveBottomBack, rate); setMotorSlew(leftDriveTopFront, rate); setMotorSlew(leftDriveTopBack, rate); setMotorSlew(rightDriveBottomFront, rate); setMotorSlew(rightDriveBottomBack, rate); setMotorSlew(rightDriveTopFront, rate); setMotorSlew(rightDriveTopBack, rate)
 
 #define setLeftDriveMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDriveTopFront] = power; motor[leftDriveTopBack] = power
 #define setRightDriveMotorsRaw(power) motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDriveTopFront] = power; motor[rightDriveTopBack] = power
 #define setAllDriveMotorsRaw(power) setLeftDriveMotorsRaw(power); setRightDriveMotorsRaw(power)
-#define setIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
+#define setOutisdeIntakeMotorsRaw(power) motor[intakeFront] = power
+#define setInsideIntakeMotorsRaw(power) motors[intakeBack] = power
+#define setAllIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
 
 //Sensor redo
 #define _sensorResetTypeTo(sensor, type) SensorType[sensor] = sensorNone; SensorType[sensor] = type
@@ -41,14 +45,14 @@ static int auton_pc = 0;
 //Whether or not a collision has happened
 static bool collisionHappened = false;
 
-//Autonomous function completion metric
-//driveTime returns the amount of time left to drive
-//driveQuad returns the amount of ticks left to drive
-//driveIME returns the amount of ticks left to drive
-//turnTime retuns the amount of time left to turn
-//turnQuad returns the amount of ticks left to turn
-//turnIME returns the amount of ticks left to turn
-//turnGyro returns the amount of degrees left to turn
+//Autonomous function completion metric as specified:
+	//driveTime returns the amount of time left to drive
+	//driveQuad returns the amount of ticks left to drive
+	//driveIME returns the amount of ticks left to drive
+	//turnTime retuns the amount of time left to turn
+	//turnQuad returns the amount of ticks left to turn
+	//turnIME returns the amount of ticks left to turn
+	//turnGyro returns the amount of degrees left to turn
 static int f_distanceLeft = 0;
 
 //Autonomous function type ID
@@ -80,6 +84,76 @@ void initializeSensors()
 
 /***************************************************************************/
 /*                                                                         */
+/* Subroutine - Uses the LCD to select an autonomous                       */
+/*                                                                         */
+/***************************************************************************/
+int selectAutonomous()
+{
+	string currentAuton, specifier;
+
+	int autonColor = 1, autonTile = 1, autonLevel = 1;
+	string autonColorString. autonTileString, autonLevelString;
+
+	sprintf(specifier, "C, T, L");
+
+	while (true)
+	{
+		//Left button changes auton color
+		if (nLCDButtons & kButtonLeft)
+		{
+			autonColor = autonColor == 1 ? 2 : 1;
+			autonColorString = autonColor == 1 ? "Red" : "Blue";
+		}
+
+		//Center button changes auton tile or exits
+		if (nLCDButtons & kButtonCenter)
+		{
+			int startTime = time1[T1];
+
+			while (nLCDButtons & kButtonCenter)
+			{
+				if (time1[T1] > startTime + 250)
+				{
+					return (autonColor * 100) +(autonTile * 10) + autonLevelString;
+				}
+
+				wait1Msec(5);
+			}
+
+			autonTile = autonTIle == 1 ? 2 : 1;
+			autonTileString = autonTile == 1 ? "Left" : "Right";
+		}
+
+		//Right button changes auton level
+		if (nLCDButtons & kButtonRight)
+		{
+			autonLevel = autonLevel + 1 > 3 ? 1 : autonLevel + 1;
+
+			if (autonLevel == 1)
+			{
+				autonTileString = "Primary";
+			}
+			else if (autonLevel == 2)
+			{
+				autonTileString = "Secondary";
+			}
+			else
+			{
+				autonTileString = "Tertiary";
+			}
+		}
+
+		sprintf(currentAuton, "%s,%s,%s", autonColorString, autonTileString, autonLevelString);
+
+		displayLCDCenteredString(0, currentAuton);
+		displayLCDCenteredString(1, specifier);
+
+		wait1Msec(25);
+	}
+}
+
+/***************************************************************************/
+/*                                                                         */
 /* Subroutine - Shifts gear in the transmission                            */
 /*                                                                         */
 /***************************************************************************/
@@ -98,11 +172,6 @@ void shiftGear(int gear = -1010)
 	}
 
 	wait1Msec(300);
-
-	setAllDriveMotorsRaw(60);
-	wait1Msec(100);
-	setAllDriveMotorsRaw(-60);
-	wait1Msec(100);
 
 	setAllDriveMotorsRaw(60);
 	wait1Msec(100);
