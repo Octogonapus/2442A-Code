@@ -669,7 +669,8 @@ task monitorRPM
 	}
 }
 
-bBallHasBeenLaunched = false;
+bool bBallHasBeenLaunched = false;
+int iTimeOfBallLaunch = 0;
 task monitorForBallLaunch()
 {
 	while (true)
@@ -679,7 +680,10 @@ task monitorForBallLaunch()
 			bBallHasBeenLaunched = true;
 		}
 
-		wait1Msec(1);
+		if (!bBallHasBeenLaunched)
+		{
+			iTimeOfBallLaunch = nPgmTime;
+		}
 	}
 }
 

@@ -93,7 +93,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, launcherQuad, 1, 90);
+	vel_TBH_InitController(&launcherTBH, launcherQuad, 0.5, 52);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -157,11 +157,12 @@ task usercontrol()
 
 	//Launcher variables
 	bool launcherOn = false, stepController = true;
-	int launcherTargetRPM = 0, launcherPOWER = 70, launcherPID_OUT = 0, launcherCurrentPower = 0;
+	int launcherTargetRPM = 0, launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0;
 	const int launcherRPMIncrement = 10;
 
 	startTask(motorSlewRateTask);
-	startTask(monitorRPM);
+	//startTask(monitorRPM);
+	startTask(monitorForBallLaunch);
 
 	bLCDBacklight = true;
 
@@ -169,8 +170,6 @@ task usercontrol()
 
 	while (true)
 	{
-		writeDebugStreamLine("%d", SensorValue[intakeUltra]);
-
 		bLCDBacklight = true;
 
 		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
@@ -315,7 +314,23 @@ task usercontrol()
 			//Set motors to low slew rate to minimize torque on launcher
 			setAllDriveMotorsSlewRate(0.7);
 			iBaySpeedMaintainRate = -launcherCurrentPower;
-			setAllDriveMotors(-launcherPOWER);
+
+			//Change motor speed based on launching balls
+			if (bBallHasBeenLaunched)
+			{
+				//Rev up the motors to recover faster
+				setAllDriveMotors(-127);
+
+				if (!(iTimeOfBallLaunch + 750 > nPgmTime))
+				{
+					bBallHasBeenLaunched = false;
+					iTimeOfBallLaunch = 0;
+				}
+			}
+			else
+			{
+				setAllDriveMotors(-launcherPOWER);
+			}
 		}
 		//If the launcher should not run
 		else
@@ -333,8 +348,8 @@ task usercontrol()
 		//Full field shot
 		if (vexRT[JOY_BTN_RL])
 		{
-			launcherTargetRPM = 40;
-			launcherPOWER = 60;
+			launcherTargetRPM = 69;
+			launcherPOWER = 50;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RL]);
@@ -343,8 +358,8 @@ task usercontrol()
 		//Half field shot
 		if (vexRT[JOY_BTN_RR])
 		{
-			launcherTargetRPM = 60;
-			launcherPOWER = 50;
+			launcherTargetRPM = 45;
+			launcherPOWER = 40;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RR]);
