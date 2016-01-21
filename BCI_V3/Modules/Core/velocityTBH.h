@@ -25,6 +25,7 @@ typedef struct vel_TBH
 
 	//Input
 	tSensors sensor;
+	tMotor imeMotor;
 	int currentPosition;
 	float targetVelocity;
 

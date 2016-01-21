@@ -93,7 +93,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, launcherQuad, 0.5, 52);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.1, 77);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -157,8 +157,8 @@ task usercontrol()
 
 	//Launcher variables
 	bool launcherOn = false, stepController = true;
-	int launcherTargetRPM = 0, launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0;
-	const int launcherRPMIncrement = 10;
+	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
+	int launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
 	startTask(motorSlewRateTask);
 	//startTask(monitorRPM);
@@ -173,13 +173,13 @@ task usercontrol()
 		bLCDBacklight = true;
 
 		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
-		sprintf(line2String, "%d", launcherPOWER);
 		sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
 		displayLCDCenteredString(0, line1String);
 
 		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 		//sprintf(line2String, "CP:%d", launcherCurrentPower);
 		//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
+		sprintf(line2String, "%d,%d", launcherTargetRPM, launcherCurrentPower);
 		displayLCDCenteredString(1, line2String);
 
 		/* ------------ DRIVETRAIN ------------ */
@@ -302,7 +302,14 @@ task usercontrol()
 				*/
 
 				//Set the TBH controller's target velocity to the new target velocity
-				vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
+				//if the target velocity has changed
+				if (launcherTargetRPM != launcherTargetRPM_last)
+				{
+					vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
+				}
+
+				//Remember the current target rpm
+				launcherTargetRPM_last = launcherTargetRPM;
 
 				//Step the TBH controller and get the output
 				launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
@@ -314,23 +321,25 @@ task usercontrol()
 			//Set motors to low slew rate to minimize torque on launcher
 			setAllDriveMotorsSlewRate(0.7);
 			iBaySpeedMaintainRate = -launcherCurrentPower;
+			setAllDriveMotors(-launcherCurrentPower);
 
-			//Change motor speed based on launching balls
-			if (bBallHasBeenLaunched)
-			{
-				//Rev up the motors to recover faster
-				setAllDriveMotors(-127);
+			////Change motor speed based on launching balls
+			//if (bBallHasBeenLaunched)
+			//{
+			//	//Rev up the motors to recover faster
+			//	//setAllDriveMotors(-127);
+			//	setAllDriveMotors(-launcherPOWER);
 
-				if (!(iTimeOfBallLaunch + 750 > nPgmTime))
-				{
-					bBallHasBeenLaunched = false;
-					iTimeOfBallLaunch = 0;
-				}
-			}
-			else
-			{
-				setAllDriveMotors(-launcherPOWER);
-			}
+			//	if (!(iTimeOfBallLaunch + 750 > nPgmTime))
+			//	{
+			//		bBallHasBeenLaunched = false;
+			//		iTimeOfBallLaunch = 0;
+			//	}
+			//}
+			//else
+			//{
+			//	setAllDriveMotors(-launcherPOWER);
+			//}
 		}
 		//If the launcher should not run
 		else
@@ -348,8 +357,10 @@ task usercontrol()
 		//Full field shot
 		if (vexRT[JOY_BTN_RL])
 		{
-			launcherTargetRPM = 69;
-			launcherPOWER = 50;
+			launcherTargetRPM = 90;
+			vel_TBH_SetTargetVelocity(&launcherTBH, 90, 77);
+
+			launcherPOWER = 90;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RL]);
@@ -358,8 +369,10 @@ task usercontrol()
 		//Half field shot
 		if (vexRT[JOY_BTN_RR])
 		{
-			launcherTargetRPM = 45;
-			launcherPOWER = 40;
+			launcherTargetRPM = 80;
+			vel_TBH_SetTargetVelocity(&launcherTBH, 80, 60);
+
+			launcherPOWER = 70;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RR]);
