@@ -179,7 +179,7 @@ task usercontrol()
 		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 		//sprintf(line2String, "CP:%d", launcherCurrentPower);
 		//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
-		sprintf(line2String, "%d,%d", launcherTargetRPM, launcherCurrentPower);
+		sprintf(line2String, "T:%d,C:%d,A:%d", launcherTargetRPM, launcherCurrentPower, launcherTBH.outValApprox);
 		displayLCDCenteredString(1, line2String);
 
 		/* ------------ DRIVETRAIN ------------ */
