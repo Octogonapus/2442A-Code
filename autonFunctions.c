@@ -185,11 +185,6 @@ void shiftGear(int gear = -1010)
 	setAllDriveMotorsRaw(-60);
 	wait1Msec(100);
 
-	setAllDriveMotorsRaw(60);
-	wait1Msec(100);
-	setAllDriveMotorsRaw(-60);
-	wait1Msec(100);
-
 	setAllDriveMotorsRaw(0);
 }
 

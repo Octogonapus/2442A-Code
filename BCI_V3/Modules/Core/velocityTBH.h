@@ -1,6 +1,8 @@
 #ifndef VELOCITYTBH_H_INCLUDED
 #define VELOCITYTBH_H_INCLUDED
 
+#include "filter.c"
+
 //This scale relates degrees per millisecond to rpm
 #define TBH_DEGPMS_TO_RPM 166.7
 
@@ -29,15 +31,18 @@ typedef struct vel_TBH
 	int currentPosition;
 	float targetVelocity;
 
+	//Filtering
+	TUAFilter filter;
+
 	//Output
 	float outVal;
 } vel_TBH;
 
 //Initializes a velocity TBH controller
-void vel_TBH_InitController(vel_TBH* tbh, tSensors sensor, float gain, int outValApprox);
+void vel_TBH_InitController(vel_TBH* tbh, const tSensors sensor, const float gain, const int outValApprox);
 
 //Sets the target velocity
-void vel_TBH_SetTargetVelocity(vel_TBH* tbh, int targetVelocity, int outValApprox = -1010);
+void vel_TBH_SetTargetVelocity(vel_TBH* tbh, const int targetVelocity, const int outValApprox = -1010);
 
 //Steps the controller calculations (velocity based)
 int vel_TBH_StepController_VEL(vel_TBH* tbh);

@@ -3,7 +3,7 @@
 
 #include "VelocityTBH.h"
 
-void vel_TBH_InitController(vel_TBH* tbh, tSensors sensor, float gain, int outValApprox)
+void vel_TBH_InitController(vel_TBH* tbh, const tSensors sensor, const float gain, const int outValApprox)
 {
 	tbh->gain = gain;
 
@@ -22,6 +22,8 @@ void vel_TBH_InitController(vel_TBH* tbh, tSensors sensor, float gain, int outVa
 	tbh->imeMotor = 1010;
 	tbh->currentPosition = 0;
 	tbh->targetVelocity = 0.0;
+
+	tbh->filter = filter_Init_TUA(&(tbh->filter));
 
 	tbh->outVal = 0.0;
 }
@@ -49,7 +51,7 @@ void vel_TBH_InitController(vel_TBH* tbh, const tMotor imeMotor, const float gai
 	tbh->outVal = 0.0;
 }
 
-void vel_TBH_SetTargetVelocity(vel_TBH *tbh, int targetVelocity, int outValApprox)
+void vel_TBH_SetTargetVelocity(vel_TBH *tbh, const int targetVelocity, const int outValApprox)
 {
 	tbh->targetVelocity = targetVelocity;
 	tbh->firstCross = true;
@@ -76,6 +78,7 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 	else
 	{
 		tbh->currentVelocity = getMotorVelocity(tbh->imeMotor);
+		tbh->currentVelocity = 
 	}
 
 	//Calculate error
