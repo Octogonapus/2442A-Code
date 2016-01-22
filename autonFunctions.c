@@ -96,9 +96,15 @@ int selectAutonomous()
 	string currentAuton, specifier;
 
 	int autonColor = 1, autonTile = 1, autonLevel = 1;
-	string autonColorString. autonTileString, autonLevelString;
+	string autonColorString, autonTileString, autonLevelString;
 
 	sprintf(specifier, "Clr, Tl, Lvl");
+	sprintf(autonColorString, "Red");
+	sprintf(autonTileString, "Left");
+	sprintf(autonLevelString, "Pri");
+
+	timer t;
+	timer_Initialize(&t);
 
 	while (true)
 	{
@@ -113,7 +119,7 @@ int selectAutonomous()
 		//Center button changes auton tile or exits
 		if (nLCDButtons & kButtonCenter)
 		{
-			autonTile = autonTIle == 1 ? 2 : 1;
+			autonTile = autonTile == 1 ? 2 : 1;
 			autonTileString = autonTile == 1 ? "Left" : "Right";
 			waitForLCDRelease();
 		}
@@ -121,6 +127,16 @@ int selectAutonomous()
 		//Right button changes auton level
 		if (nLCDButtons & kButtonRight)
 		{
+			while (nLCDButtons & kButtonRight)
+			{
+				if (timer_GetDTFromStart(&t) >= 250)
+				{
+					return (autonColor * 100) + (autonTile * 10) + autonLevel;
+				}
+
+				wait1Msec(5);
+			}
+
 			autonLevel = autonLevel + 1 > 3 ? 1 : autonLevel + 1;
 
 			if (autonLevel == 1)
@@ -134,17 +150,6 @@ int selectAutonomous()
 			else
 			{
 				autonLevelString = "Ter";
-			}
-
-			int startTime = time1[T1];
-			while (nLCDButtons & kButtonRight)
-			{
-				if (time1[T1] > startTime + 250)
-				{
-					return (autonColor * 100) + (autonTile * 10) + autonLevel;
-				}
-
-				wait1Msec(5);
 			}
 
 			waitForLCDRelease();
@@ -637,150 +642,37 @@ byte turnGyro(const int power, const float deg)
 
 #endif //USING_GYRO
 
-float launcherRPM = 0.0;
-
-task monitorRPM
-{
-	//Scales degrees per millisecond to rpm
-	const float DPMS_TO_RPM = 166.7;
-
-	//Timestep
-	float dt = 0.0, prevTime = 0.0;
-
-	//Previous quad val
-	int prevCount = 0;
-
-	while (true)
-	{
-		//Calculate timestep
-		dt = (time1[T1] - prevTime) + 1;
-		prevTime = time1[T1];
-
-		//Calculate rpm
-		launcherRPM = (SensorValue[launcherQuad] - prevCount) * (DPMS_TO_RPM / dt);
-		prevCount = SensorValue[launcherQuad];
-
-		wait1Msec(25);
-	}
-}
-
-bool bBallHasBeenLaunched = false;
-int iTimeOfBallLaunch = 0;
-task monitorForBallLaunch()
-{
-	while (true)
-	{
-		if (SensorValue[intakeUltra] <= 90)
-		{
-			bBallHasBeenLaunched = true;
-		}
-
-		if (!bBallHasBeenLaunched)
-		{
-			iTimeOfBallLaunch = nPgmTime;
-		}
-	}
-}
-
-////Author: JPearman
-///*-----------------------------------------------------------------------------*/
-///** @brief      Calculate velocity                                             */
-///** @param[in]  port the motor port                                            */
-///** @param[in]  gear_ratio external gear ratio                                 */
-///** @returns    The motor velocity (optionally) multiplied by constant         */
-///*-----------------------------------------------------------------------------*/
-///*
-// * @details
-// *  The best way to calculate velocity without the addition of complex filtering.
-// *  This function understands which type of motor is configured, uses the
-// *  timestamp that ROBOTC adds to each encoder reading and filters the final
-// *  velocity to remove some of the noise.
-// *
-// *  The calculated motor speed is multiplied by any external gear ratio to
-// *  obtain the angular velocity of, for example, a flywheel.
-// *
-// */
-//float
-//calculateVelocityBest( tMotor port, float gear_ratio = 1.0 )
-//{
-//    static  long  encoder_time_last = 0;
-//    static  long  encoder_counts_last;
-//    static  float ticks_per_rev;
-
-//    int     delta_ms;
-//    int     delta_enc;
-//    long    encoder_time;
-//    long    encoder_counts;
-//    static  float   motor_velocity;
-//    float   motor_velocity_t;
-
-//    // First time is undefined
-//    // save last values and exit
-//    if( encoder_time_last == 0 ) {
-//      // first read to get initial values
-//      getEncoderAndTimeStamp( port, encoder_counts_last, encoder_time_last );
-
-//      // What sort of motor is connected
-//      // If the type of motor is set we assume it has an IME, otherwise we
-//      // revert to a quad encoder.
-//      if( motorType[ port ] == tmotorVex393_HBridge || motorType[ port ] == tmotorVex393_MC29 )
-//        ticks_per_rev = SMLIB_TPR_393Torque;
-//      else
-//      if( motorType[ port ] == tmotorVex393HighSpeed_HBridge || motorType[ port ] == tmotorVex393HighSpeed_MC29 )
-//        ticks_per_rev = SMLIB_TPR_393Speed;
-//      if( motorType[ port ] == tmotorVex393TurboSpeed_HBridge || motorType[ port ] == tmotorVex393TurboSpeed_MC29 )
-//        ticks_per_rev = SMLIB_TPR_393Turbo;
-//      else
-//        ticks_per_rev = SMLIB_TPR_393Quad;
-
-//      return(0.0);
-//    }
-
-//    // Get current encoder value
-//    encoder_counts = nMotorEncoder[ port ];
-//    getEncoderAndTimeStamp( port, encoder_counts, encoder_time );
-
-//    // calculate the time since the last encoder poll
-//    delta_ms = encoder_time - encoder_time_last;
-//    encoder_time_last = encoder_time;
-
-//    // Change in encoder count
-//    delta_enc = (encoder_counts - encoder_counts_last);
-
-//    // save last position
-//    encoder_counts_last = encoder_counts;
-
-//    // Calculate velocity in rpm
-//    motor_velocity_t = (1000.0 / delta_ms) * delta_enc * 60.0 / ticks_per_rev;
-
-//    // filter if we are running quickly (< 100mS loop speed)
-//    if( delta_ms < 100 )
-//      motor_velocity = (motor_velocity * 0.7) + (motor_velocity_t * 0.3);
-//    else
-//      motor_velocity = motor_velocity_t;
-
-//    // IIR filter means velocity will just keep getting smaller, clip if really low.
-//    if(motor_velocity < 0.01)
-//      motor_velocity = 0;
-
-//    // multiply by any gear ratio's being used
-//    return( motor_velocity * gear_ratio );
-//}
-
-int auton_maintainLauncher_target = 200;
+int auton_maintainLauncher_target = 90;
 task maintainLauncherForAuton()
 {
 	startTask(motorSlewRateTask);
 
-	float launcherPID_OUT;
+	int launcherCurrentPower = 0, auton_maintainLauncher_target_last = 0;
 
-	launcherPID.targetVelocity = auton_maintainLauncher_target;
+	//Make sure the transmission is in launcher gear
+	shiftGear(0);
 
 	while (true)
 	{
-		launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
-		SensorValue[shifter] = 1;
-		setAllDriveMotors(launcherPID_OUT);
+		//Set the TBH controller's target velocity to the new target velocity
+		//if the target velocity has changed
+		if (auton_maintainLauncher_target != auton_maintainLauncher_target_last)
+		{
+			vel_TBH_SetTargetVelocity(&launcherTBH, auton_maintainLauncher_target);
+		}
+
+		//Remember the current target rpm
+		auton_maintainLauncher_target_last = auton_maintainLauncher_target;
+
+		//Step the TBH controller and get the output
+		launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
+
+		//Bound the TBH controller's output to [0, inf) so the launcher's motors always run in the correct direction
+		launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+
+		//Set motors to low slew rate to minimize torque on launcher
+		setAllDriveMotorsSlewRate(0.7);
+		setAllDriveMotors(-launcherCurrentPower);
 
 		wait1Msec(25);
 	}
@@ -788,47 +680,47 @@ task maintainLauncherForAuton()
 
 void launchFourBalls(int target)
 {
-	//Number of balls launched
-	int ballCount = 0;
+	int ballCount = 0, intakeLimit_last = 0;
 
 	auton_maintainLauncher_target = target;
 	startTask(maintainLauncherForAuton);
 
-	//If launcher velocity is in acceptable bounds
-	if (launcherPID.targetVelocity < target + 10 && launcherPID.targetVelocity > target - 10)
+	//Run until 4 balls have been launched
+	while (ballCount <= 4)
 	{
-		//Run intake to launch a ball
-		setIntakeMotorsRaw(127);
-
-		//If the intake limit switch is hit, a ball is about to be launched
-		if (SensorValue[intakeLimit] == 1)
+		//Make sure a ball is ready to fire
+		if (SensorValue[intakeLimit] != 1)
 		{
-			ballCount++;
+			setIntakeMotorsRaw(127);
+		}
+		else
+		{
+			setIntakeMotorsRaw(0);
+		}
+
+		//If launcher velocity is in acceptable bounds
+		if (launcherTBH.currentVelocity < target + 5 && launcherTBH.currentVelocity > target - 5)
+		{
+			//Run intake to launch a ball
+			setIntakeMotorsRaw(127);
+
+			//If the intake limit switch is no longer hit, a ball has been fired
+			if (SensorValue[intakeLimit] == 0 && intakeLimit_last == 1)
+			{
+				ballCount++;
+			}
+
+			//Remember current intake limit switch position
+			intakeLimit_last = SensorValue[intakeLimit];
 		}
 	}
 
 	setIntakeMotorsRaw(0);
-}
-
-task filterAccelTask()
-{
-	const float alpha = 1.0;    //How much of the new accel value to use
-	int accel_raw;              //Raw accel value directly from accelerometer
-	int accel_filt;             //New filtered accel value
-	int accel_filt_old = 0;     //Previous filtered accel value
-
-	while (true)
-	{
-		accel_raw = SensorValue[accelX];                                    //Read new, raw accel from accelerometer itself
-		accel_filt = (1.0 - alpha) * accel_filt_old + alpha * accel_raw;    //(100 - alpha)% of old, filtered accel + alpha% of new, raw accel
-		accel_filt_old = accel_filt;                                        //Update the old filtered accel value
-		wait1Msec(1);                                                       //Hopefully 1ms sample time
-	}
+	stopTask(maintainLauncherForAuton);
 }
 
 bool forceTrig; //Simulate a collision
 collisionVector2f collVec; //Collision vector
-
 /***************************************************************************/
 /*                                                                         */
 /* Subroutine - Corrects for a collision                                   */

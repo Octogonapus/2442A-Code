@@ -23,7 +23,17 @@ long timer_GetStartingTime(timer* timer)
 
 long timer_GetDTFromStart(timer* timer)
 {
-	return time1[T1] - timer->firstCalled;
+	return nSysTime - timer->firstCalled;
+}
+
+void timer_PlaceMarker(timer *timer)
+{
+	timer->mark = nSysTime;
+}
+
+long timer_GetDTFromMarker(timer *timer)
+{
+	return nSysTime - timer->mark;
 }
 
 #endif //TIMER_C_INCLUDED

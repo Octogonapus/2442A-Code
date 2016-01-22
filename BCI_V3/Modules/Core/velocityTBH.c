@@ -20,7 +20,6 @@ void vel_TBH_InitController(vel_TBH* tbh, const tSensors sensor, const float gai
 
 	tbh->sensor = sensor;
 	tbh->imeMotor = 1010;
-	tbh->currentPosition = 0;
 	tbh->targetVelocity = 0.0;
 
 	filter_Init_TUA(&tbh->filter);
@@ -45,7 +44,6 @@ void vel_TBH_InitController(vel_TBH* tbh, const tMotor imeMotor, const float gai
 
 	tbh->sensor = 1010;
 	tbh->imeMotor = imeMotor;
-	tbh->currentPosition = 0;
 	tbh->targetVelocity = 0.0;
 
 	filter_Init_TUA(&tbh->filter);

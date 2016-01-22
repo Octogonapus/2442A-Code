@@ -10,8 +10,7 @@
 #pragma config(Sensor, dgtl4,  shifter,        sensorDigitalOut)
 #pragma config(Sensor, dgtl5,  leftDriveQuad,  sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  rightDriveQuad, sensorQuadEncoder)
-#pragma config(Sensor, dgtl9,  intakeUltra,    sensorSONAR_mm)
-#pragma config(Sensor, dgtl11, intakeLimit,    sensorTouch)
+#pragma config(Sensor, dgtl9, intakeLimit,    sensorTouch)
 #pragma config(Sensor, I2C_1,  leftBankIME,    sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  rightBankIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Motor,  port1,           intakeFront,   tmotorVex393_HBridge, openLoop, reversed)
@@ -59,22 +58,7 @@ vel_PID launcherPID;
 vel_TBH launcherTBH;
 
 //Autonomous program file includes
-//#include "autonIncludes.h"
-#include "Auton\redLeftAutonPrimary.c"
-#include "Auton\redLeftAutonSecondary.c"
-#include "Auton\redLeftAutonTertiary.c"
-
-#include "Auton\redRightAutonPrimary.c"
-#include "Auton\redRightAutonSecondary.c"
-#include "Auton\redRightAutonTertiary.c"
-
-#include "Auton\blueLeftAutonPrimary.c"
-#include "Auton\blueLeftAutonSecondary.c"
-#include "Auton\blueLeftAutonTertiary.c"
-
-#include "Auton\blueRightAutonPrimary.c"
-#include "Auton\blueRightAutonSecondary.c"
-#include "Auton\blueRightAutonTertiary.c"
+#include "autonIncludes.h"
 
 //Programming skills routine
 #include "programmingSkills.c"
@@ -112,7 +96,7 @@ void pre_auton()
 
 	//Menu system
 	//Level 1 - General Info
-	autonomousSelectionMenu = newMenu("Select Auton", 42);
+	autonomousSelectionMenu = newMenu("Select Auton", 2);
 	endPreAutonMenu = newMenu("Confirm", 1);
 
 	string batteryVoltage;
@@ -161,8 +145,6 @@ task usercontrol()
 	int launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
 	startTask(motorSlewRateTask);
-	//startTask(monitorRPM);
-	startTask(monitorForBallLaunch);
 
 	bLCDBacklight = true;
 
@@ -282,9 +264,6 @@ task usercontrol()
 		//If the launcher should run
 		if (launcherOn)
 		{
-			//Synchronize motor bays
-			//startTask(maintainMotorBaySpeed);
-
 			//If the PID controller should step its calculations
 			if (stepController)
 			{
@@ -314,38 +293,17 @@ task usercontrol()
 				//Step the TBH controller and get the output
 				launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
 
-				//Bound the TBH controller's output to (-inf, 0] so the launcher's motors always run in the correct direction
+				//Bound the TBH controller's output to [0, inf) so the launcher's motors always run in the correct direction
 				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 			}
 
 			//Set motors to low slew rate to minimize torque on launcher
 			setAllDriveMotorsSlewRate(0.7);
-			iBaySpeedMaintainRate = -launcherCurrentPower;
 			setAllDriveMotors(-launcherCurrentPower);
-
-			////Change motor speed based on launching balls
-			//if (bBallHasBeenLaunched)
-			//{
-			//	//Rev up the motors to recover faster
-			//	//setAllDriveMotors(-127);
-			//	setAllDriveMotors(-launcherPOWER);
-
-			//	if (!(iTimeOfBallLaunch + 750 > nPgmTime))
-			//	{
-			//		bBallHasBeenLaunched = false;
-			//		iTimeOfBallLaunch = 0;
-			//	}
-			//}
-			//else
-			//{
-			//	setAllDriveMotors(-launcherPOWER);
-			//}
 		}
 		//If the launcher should not run
 		else
 		{
-			//stopTask(maintainMotorBaySpeed);
-
 			//Keep setting the PID controller's current velocity without stepping itself
 			launcherPID.currentVelocity = 0.0;
 
@@ -361,7 +319,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RL])
 		{
 			launcherTargetRPM = 90;
-			vel_TBH_SetTargetVelocity(&launcherTBH, 90, 77);
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 77);
 
 			launcherPOWER = 90;
 
@@ -373,7 +331,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RR])
 		{
 			launcherTargetRPM = 80;
-			vel_TBH_SetTargetVelocity(&launcherTBH, 80, 60);
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 60);
 
 			launcherPOWER = 70;
 
@@ -385,6 +343,8 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RU])
 		{
 			launcherTargetRPM += launcherRPMIncrement;
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcherTBH.outValApprox + 1);
+
 			launcherPOWER++;
 
 			//Wait for the button to be released before continuing
@@ -395,6 +355,8 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RD])
 		{
 			launcherTargetRPM -= launcherRPMIncrement;
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcherTBH.outValApprox - 1);
+
 			launcherPOWER--;
 
 			//Wait for the button to be released before continuing
@@ -439,6 +401,7 @@ task usercontrol()
 	}
 }
 
+//Run an autonomous function based on current selection
 void startAutonomous()
 {
 	//Naming convention: <red side = 1, blue side = 2><left side = 1, right side = 2><primary = 1, secondary = 2, tertiary = 3>
@@ -498,6 +461,7 @@ void startAutonomous()
 	}
 }
 
+//LCD Library callback function
 void invoke(int func)
 {
 	if (func == 1)
@@ -505,7 +469,7 @@ void invoke(int func)
 		endPreAuton = true;
 		stopTask(updateLCDTask);
 	}
-	else if (func == 42)
+	else if (func == 2)
 	{
 		autonSelection = selectAutonomous();
 	}

@@ -28,7 +28,6 @@ typedef struct vel_TBH
 	//Input
 	tSensors sensor;
 	tMotor imeMotor;
-	int currentPosition;
 	float targetVelocity;
 
 	//Filtering
@@ -40,6 +39,7 @@ typedef struct vel_TBH
 
 //Initializes a velocity TBH controller
 void vel_TBH_InitController(vel_TBH* tbh, const tSensors sensor, const float gain, const int outValApprox);
+void vel_TBH_InitController(vel_TBH* tbh, const tMotor imeMotor, const float gain, const int outValApprox);
 
 //Sets the target velocity
 void vel_TBH_SetTargetVelocity(vel_TBH* tbh, const int targetVelocity, const int outValApprox = -1010);
