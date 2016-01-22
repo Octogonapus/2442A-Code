@@ -77,7 +77,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.01, 77);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.008, 77);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -111,7 +111,7 @@ void pre_auton()
 	sprintf(backupBatteryVoltage, "Backup: %1.2f%c", BackupBatteryLevel / 1000.0, 'V');
 	backupBatteryVoltageMenu = newMenu(backupBatteryVoltage);
 
-	linkMenus(autonomousSelectionMenu, endPreAutonMenu, backupBatteryVoltageMenu, powerExpanderVoltageMenu, batteryVoltageMenu);
+	linkMenus(autonomousSelectionMenu, endPreAutonMenu, batteryVoltageMenu, powerExpanderVoltageMenu, backupBatteryVoltageMenu);
 
 	bLCDBacklight = true;
 	startTask(updateLCDTask);
@@ -150,9 +150,8 @@ task usercontrol()
 
 	string line1String, line2String;
 
-	timer t, launcherTimer;
+	timer t;
 	timer_Initialize(&t);
-	timer_Initialize(&launcherTimer);
 
 	//while (timer_GetDTFromStart(t) <= 8000)
 	while(true)
@@ -296,17 +295,19 @@ task usercontrol()
 				//Remember the current target rpm
 				launcherTargetRPM_last = launcherTargetRPM;
 
-				//Rev the launcher to 127 while a velocity controller is not needed
-				//if (timer_GetDTFromMarker(&launcherTimer) <= 350 && launcherTBH.currentVelocity <= launcherTargetRPM - 5)
+				//Rev the launcher to 127 while far under target
 				if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
 				{
 					vel_TBH_StepVelocity(&launcherTBH);
 					launcherCurrentPower = 127;
 				}
+				//Use a velocity controller when close to target
 				else
 				{
 					//Step the TBH controller and get the output
 					launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
+
+					//Bound the output to [0, inf) to prevent the launcher from running backwards
 					launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 				}
 			}
@@ -318,11 +319,13 @@ task usercontrol()
 		//If the launcher should not run
 		else
 		{
+			/*
 			//Keep setting the PID controller's current velocity without stepping itself
 			launcherPID.currentVelocity = 0.0;
 
 			//Reset the output
 			launcherPID.outVal = 0.0;
+			*/
 
 			//Step velocity calculation
 			vel_TBH_StepVelocity(&launcherTBH);
@@ -345,7 +348,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RR])
 		{
 			launcherTargetRPM = 80;
-			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 66);
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 67);
 
 			launcherPOWER = 70;
 
