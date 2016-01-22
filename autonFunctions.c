@@ -78,12 +78,12 @@ void initializeSensors()
 	_sensorResetTypeTo(rightDriveQuad, sensorQuadEncoder);
 	SensorValue[rightDriveQuad] = 0;
 
-	writeDebugStreamLine("calibrating gyro");
+	//writeDebugStreamLine("calibrating gyro");
 	SensorType[gyro] = sensorNone;
 	wait1Msec(500);
 	SensorType[gyro] = sensorGyro;
 	wait1Msec(1100);
-	writeDebugStreamLine("done calibrating gyro");
+	//writeDebugStreamLine("done calibrating gyro");
 }
 
 /***************************************************************************/

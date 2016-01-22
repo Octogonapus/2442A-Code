@@ -77,7 +77,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.1, 77);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.01, 77);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -140,7 +140,7 @@ task usercontrol()
 	bool intake_prevStateIn = false;
 
 	//Launcher variables
-	bool launcherOn = false, stepController = true;
+	bool launcherOn = true, stepController = true;
 	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
@@ -150,12 +150,18 @@ task usercontrol()
 
 	string line1String, line2String;
 
-	while (true)
+	timer t, launcherTimer;
+	timer_Initialize(&t);
+	timer_Initialize(&launcherTimer);
+
+	//while (timer_GetDTFromStart(t) <= 8000)
+	while(true)
 	{
 		writeDebugStreamLine("%d,%d,%d,%d,%d", launcherTargetRPM, launcherTBH.currentVelocity, getMotorVelocity(leftDriveBottomBack), launcherCurrentPower, launcherTBH.error);
 
 		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
-		sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
+		//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
+		sprintf(line1String, "RPM: %d", launcherTBH.currentVelocity);
 		displayLCDCenteredString(0, line1String);
 
 		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
@@ -188,23 +194,18 @@ task usercontrol()
 		/* -------------- INTAKE -------------- */
 
 		//Outside intake should turn inwards
-		if (vexRT[JOY_TRIG_LD])
+		if (vexRT[JOY_TRIG_LU] == 1 || vexRT[JOY_TRIG_LD] == 1)
 		{
 			setOutsideIntakeMotors(127);
 		}
-		//Outside intake should turn outwards
-		else if (vexRT[JOY_BTN_LU])
-		{
-			setOutsideIntakeMotors(-127);
-		}
-		//Outisde intake should not run
+		//Intake should not turn
 		else
 		{
 			setOutsideIntakeMotors(0);
 		}
 
 		//Inside intake should turn inwards
-		if (vexRT[JOY_TRIG_LU])
+		if (vexRT[JOY_TRIG_LD])
 		{
 			//After exiting this conditional, the intake will have been running inwards so set the flag
 			intake_prevStateIn = true;
@@ -285,16 +286,29 @@ task usercontrol()
 				if (launcherTargetRPM != launcherTargetRPM_last)
 				{
 					vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
+
+					if (launcherTargetRPM > launcherTargetRPM_last)
+					{
+						timer_PlaceMarker(&launcherTimer);
+					}
 				}
 
 				//Remember the current target rpm
 				launcherTargetRPM_last = launcherTargetRPM;
 
-				//Step the TBH controller and get the output
-				launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
-
-				//Bound the TBH controller's output to [0, inf) so the launcher's motors always run in the correct direction
-				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+				//Rev the launcher to 127 while a velocity controller is not needed
+				//if (timer_GetDTFromMarker(&launcherTimer) <= 350 && launcherTBH.currentVelocity <= launcherTargetRPM - 5)
+				if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
+				{
+					vel_TBH_StepVelocity(&launcherTBH);
+					launcherCurrentPower = 127;
+				}
+				else
+				{
+					//Step the TBH controller and get the output
+					launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
+					launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+				}
 			}
 
 			//Set motors to low slew rate to minimize torque on launcher
@@ -331,7 +345,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RR])
 		{
 			launcherTargetRPM = 80;
-			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 60);
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 66);
 
 			launcherPOWER = 70;
 
