@@ -23,7 +23,7 @@ void vel_TBH_InitController(vel_TBH* tbh, const tSensors sensor, const float gai
 	tbh->currentPosition = 0;
 	tbh->targetVelocity = 0.0;
 
-	tbh->filter = filter_Init_TUA(&(tbh->filter));
+	filter_Init_TUA(&tbh->filter);
 
 	tbh->outVal = 0.0;
 }
@@ -48,6 +48,8 @@ void vel_TBH_InitController(vel_TBH* tbh, const tMotor imeMotor, const float gai
 	tbh->currentPosition = 0;
 	tbh->targetVelocity = 0.0;
 
+	filter_Init_TUA(&tbh->filter);
+
 	tbh->outVal = 0.0;
 }
 
@@ -63,7 +65,7 @@ void vel_TBH_SetTargetVelocity(vel_TBH *tbh, const int targetVelocity, const int
 	}
 }
 
-int vel_TBH_StepController_VEL(vel_TBH* tbh)
+int vel_TBH_StepVelocity(vel_TBH* tbh)
 {
 	//Calculate timestep
 	tbh->dt = (time1[T1] - tbh->prevTime) + 1;
@@ -77,9 +79,17 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 	}
 	else
 	{
-		tbh->currentVelocity = getMotorVelocity(tbh->imeMotor);
-		tbh->currentVelocity = 
+		//Use a TUA filter to smooth data
+		tbh->currentVelocity = filter_TUA(&(tbh->filter), getMotorVelocity(tbh->imeMotor));
 	}
+
+	return tbh->currentVelocity;
+}
+
+int vel_TBH_StepController_VEL(vel_TBH* tbh)
+{
+	//Calculate velocity
+	vel_TBH_StepVelocity(tbh);
 
 	//Calculate error
 	tbh->error = tbh->targetVelocity - tbh->currentVelocity;
@@ -112,4 +122,4 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 	return tbh->outVal;
 }
 
-#endif
+#endif //VELOCITYTBH_C_INCLUDED

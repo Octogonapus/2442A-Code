@@ -120,7 +120,7 @@ void pre_auton()
 	batteryVoltageMenu = newMenu(batteryVoltage);
 
 	string powerExpanderVoltage;
-	sprintf(powerExpanderVoltage, "Expander: %1.2f%c", SensorValue[powerExpander] / 286.0, 'V');
+	sprintf(powerExpanderVoltage, "Expander: %1.2f%c", SensorValue[powerExpander] / ANALOG_IN_TO_V, 'V');
 	powerExpanderVoltageMenu = newMenu(powerExpanderVoltage);
 
 	string backupBatteryVoltage;
@@ -170,7 +170,7 @@ task usercontrol()
 
 	while (true)
 	{
-		bLCDBacklight = true;
+		writeDebugStreamLine("%d,%d,%d,%d,%d", launcherTargetRPM, launcherTBH.currentVelocity, getMotorVelocity(leftDriveBottomBack), launcherCurrentPower, launcherTBH.error);
 
 		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
 		sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
@@ -351,6 +351,9 @@ task usercontrol()
 
 			//Reset the output
 			launcherPID.outVal = 0.0;
+
+			//Step velocity calculation
+			vel_TBH_StepVelocity(&launcherTBH);
 		}
 
 		//Launcher speed targets

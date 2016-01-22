@@ -23,7 +23,7 @@ typedef enum
 } LEDState;
 
 //Converts an analog in value to millivolts
-#define ANALOG_IN_TO_MV 286.0
+#define ANALOG_IN_TO_V 286.0
 
 //Wait for a value to become zero
 #define waitForZero(val) while(val != 0) { wait1Msec(5); }

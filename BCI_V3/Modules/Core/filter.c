@@ -3,7 +3,7 @@
 
 #include "filter.h"
 
-float filter_Init_SMA(SMAFilter *filter)
+void filter_Init_SMA(SMAFilter *filter)
 {
 	filter->alpha = 1.0;
 	filter->readIn = 0.0;
@@ -30,7 +30,7 @@ void filter_Init_TUA(TUAFilter *filter)
 	}
 }
 
-float filter_TUAFilter(TUAFilter *filter, const float componentIn)
+float filter_TUA(TUAFilter *filter, const float componentIn)
 {
 	filter->components[filter->index] = componentIn;
 	filter->index = filter->index + 1 > 9 ? 0 : filter->index + 1;
