@@ -140,7 +140,7 @@ task usercontrol()
 	bool intake_prevStateIn = false;
 
 	//Launcher variables
-	bool launcherOn = true, stepController = true;
+	bool launcherOn = false, stepController = true;
 	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
