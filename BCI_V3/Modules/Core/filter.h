@@ -10,6 +10,13 @@ typedef struct SMAFilter
 	float output_old;
 } SMAFilter;
 
+//Five-unit average filter
+typedef struct FUAFilter
+{
+	float components[5];
+	int index;
+} FUAFilter;
+
 //Ten-unit average filter
 typedef struct TUAFilter
 {
@@ -20,6 +27,10 @@ typedef struct TUAFilter
 //Simple moving average filter
 void filter_Init_SMA(SMAFilter *filter);
 float filter_SMA(SMAFilter *filter, const float readIn, const float alpha);
+
+//Five-unit average filter
+void filter_Init_FUA(FUAFilter *filter);
+float filter_FUA(FUAFilter *filter, const float componentIn);
 
 //Ten-unit average filter
 void filter_Init_TUA(TUAFilter *filter);
