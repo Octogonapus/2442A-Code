@@ -77,7 +77,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.008, 77);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 70);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -137,7 +137,7 @@ task usercontrol()
 	//Intake variables
 	const int intakeTimeoutMs = 2500;
 	float intakeLastTime = 0;
-	bool intake_prevStateIn = false;
+	bool intake_prevStateIn = false, intakePrevState = false;
 
 	//Launcher variables
 	bool launcherOn = false, stepController = true;
@@ -150,7 +150,8 @@ task usercontrol()
 
 	string line1String, line2String;
 
-	timer t;
+	timer launcherTimer, t;
+	timer_Initialize(&launcherTimer);
 	timer_Initialize(&t);
 
 	//while (timer_GetDTFromStart(t) <= 8000)
@@ -196,6 +197,11 @@ task usercontrol()
 		if (vexRT[JOY_TRIG_LU] == 1 || vexRT[JOY_TRIG_LD] == 1)
 		{
 			setOutsideIntakeMotors(127);
+		}
+		//Outside intake should turn outwards
+		else if (vexRT[JOY_BTN_LU])
+		{
+			setOutsideIntakeMotors(-127);
 		}
 		//Intake should not turn
 		else
@@ -285,11 +291,6 @@ task usercontrol()
 				if (launcherTargetRPM != launcherTargetRPM_last)
 				{
 					vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
-
-					if (launcherTargetRPM > launcherTargetRPM_last)
-					{
-						timer_PlaceMarker(&launcherTimer);
-					}
 				}
 
 				//Remember the current target rpm
@@ -309,6 +310,28 @@ task usercontrol()
 
 					//Bound the output to [0, inf) to prevent the launcher from running backwards
 					launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+				}
+
+				//Rev the launcher right before firing a ball
+				if (SensorValue[intakeLimit] == 1)
+				{
+					//Set intakePrevState to true for the first time a ball is ready
+					//in order to control the rev timer correctly
+					if (!intakePrevState)
+					{
+						intakePrevState = true;
+						timer_PlaceMarker(&launcherTimer);
+					}
+				}
+
+				//Only rev launcher for 300 ms
+				if (timer_GetDTFromMarker(&launcherTimer) <= 300)
+				{
+					launcherCurrentPower = 127;
+				}
+				else if (SensorValue[intakeLimit] == 0)
+				{
+					intakePrevState = false;
 				}
 			}
 
