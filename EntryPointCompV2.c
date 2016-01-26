@@ -77,7 +77,7 @@ void pre_auton()
 
 	//Initialize launcher PID controller
 	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 70);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 75);
 
 	//Iniialize all sensors
 	initializeSensors();
