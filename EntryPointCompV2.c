@@ -324,8 +324,8 @@ task usercontrol()
 					}
 				}
 
-				//Only rev launcher for 300 ms
-				if (timer_GetDTFromMarker(&launcherTimer) <= 300)
+				//Only rev launcher for 360 ms
+				if (timer_GetDTFromMarker(&launcherTimer) <= 285)
 				{
 					launcherCurrentPower = 127;
 				}
