@@ -111,7 +111,8 @@ int vel_TBH_StepController_VEL(vel_TBH* tbh)
 		}
 		else
 		{
-			tbh->outVal = 0.5 * (tbh->outVal + tbh->outValAtZero);
+			//tbh->outVal = 0.5 * (tbh->outVal + tbh->outValAtZero);
+			tbh->outVal = 0.4 * (tbh->outVal + tbh->outValAtZero) + 0.2 * tbh->outVal;
 		}
 
 		//Save this outVal as the new zero base value
