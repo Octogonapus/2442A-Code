@@ -97,9 +97,11 @@ void linkMenus(menu *m1, menu *m2, menu *m3, menu *m4, menu *m5);
 void linkMenus(menu *m1, menu *m2, menu *m3, menu *m4, menu *m5, menu *m6);
 
 //Updates the LCD and responds to button presses
+//LCD_NO_SAFETY can be used to disable driver control safety
+//LCD_SAFETY_REQ_COMP_SWITCH can be used to limit driver control safety to a competition switch being plugged in
 task updateLCDTask();
 
-#endif //#if MENU_NUM > 0
-#endif //#ifdef MENU_NUM
+#endif //MENU_NUM > 0
+#endif //MENU_NUM
 
-#endif //#ifndef LCDCONTROL_H_INCLUDED
+#endif //LCDCONTROL_H_INCLUDED

@@ -324,7 +324,7 @@ task usercontrol()
 					}
 				}
 
-				//Only rev launcher for 360 ms
+				//Rev launcher
 				if (timer_GetDTFromMarker(&launcherTimer) <= 285)
 				{
 					launcherCurrentPower = 127;
@@ -336,7 +336,7 @@ task usercontrol()
 			}
 
 			//Set motors to low slew rate to minimize torque on launcher
-			setAllDriveMotorsSlewRate(0.7);
+			setAllDriveMotorsSlewRate(1);
 			setAllDriveMotors(-launcherCurrentPower);
 		}
 		//If the launcher should not run
