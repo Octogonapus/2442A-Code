@@ -1,7 +1,7 @@
 #ifndef AUTONOMOUSFUNCTIONS_H_INCLUDED
 #define AUTONOMOUSFUNCTIONS_H_INCLUDED
 
-#include "BCI_V3\Bulldog_Core_Includes.h"
+#include "Bulldog_Core_Includes.h"
 #include "Modules\Core\collisionVector2f.c"
 
 /***************************************************************************/
@@ -191,33 +191,6 @@ void shiftGear(int gear = -1010)
 	wait1Msec(100);
 
 	setAllDriveMotorsRaw(0);
-}
-
-int iBaySpeedMaintainRate = 0;
-task maintainMotorBaySpeed()
-{
-	vel_PID leftDrivePID, rightDrivePID;
-	int leftDriveVal, rightDriveVal;
-
-	vel_PID_InitController(&leftDrivePID, 0, 1, 0, 0, 30, 50);
-	vel_PID_InitController(&rightDrivePID, 0, 1, 0, 0, 30, 50);
-
-	while (true)
-	{
-		leftDrivePID.targetVelocity = iBaySpeedMaintainRate;
-		rightDrivePID.targetVelocity = iBaySpeedMaintainRate;
-
-		leftDriveVal = vel_PID_StepController_VEL(&leftDrivePID, getMotorVelocity(leftDriveBottomBack));
-		rightDriveVal = vel_PID_StepController_VEL(&rightDrivePID, getMotorVelocity(rightDriveBottomBack));
-
-		leftDriveVal = leftDriveVal < 0 ? 0 : leftDriveVal;
-		rightDriveVal = rightDriveVal < 0 ? 0 : rightDriveVal;
-
-		setLeftDriveMotorsRaw(-leftDriveVal);
-		setRightDriveMotorsRaw(-rightDriveVal);
-
-		wait1Msec(5);
-	}
 }
 
 /***************************************************************************/
@@ -665,7 +638,7 @@ task maintainLauncherForAuton()
 		auton_maintainLauncher_target_last = auton_maintainLauncher_target;
 
 		//Step the TBH controller and get the output
-		launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
+		launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
 
 		//Bound the TBH controller's output to [0, inf) so the launcher's motors always run in the correct direction
 		launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;

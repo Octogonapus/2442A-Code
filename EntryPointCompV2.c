@@ -51,7 +51,7 @@ bool endPreAuton = false;
 //The autonomous program to run
 int autonSelection = -1;
 
-#include "BCI_V3\Bulldog_Core_Includes.h"
+#include "Bulldog_Core_Includes.h"
 
 //Launcher PID controller
 vel_PID launcherPID;
@@ -306,7 +306,7 @@ task usercontrol()
 				else
 				{
 					//Step the TBH controller and get the output
-					launcherCurrentPower = vel_TBH_StepController_VEL(&launcherTBH);
+					launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
 
 					//Bound the output to [0, inf) to prevent the launcher from running backwards
 					launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
