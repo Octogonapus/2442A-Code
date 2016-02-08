@@ -11,6 +11,7 @@
 #pragma config(Sensor, dgtl5,  leftDriveQuad,  sensorQuadEncoder)
 #pragma config(Sensor, dgtl7,  rightDriveQuad, sensorQuadEncoder)
 #pragma config(Sensor, dgtl9, intakeLimit,    sensorTouch)
+#pragma config(Sensor, dgtl10, intakeLED,      sensorDigitalOut)
 #pragma config(Sensor, I2C_1,  leftBankIME,    sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  rightBankIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Motor,  port1,           intakeFront,   tmotorVex393_HBridge, openLoop, reversed)
@@ -53,8 +54,7 @@ int autonSelection = -1;
 
 #include "Bulldog_Core_Includes.h"
 
-//Launcher PID controller
-vel_PID launcherPID;
+//Launcher velocity controller
 vel_TBH launcherTBH;
 
 //Autonomous program file includes
@@ -75,8 +75,7 @@ void pre_auton()
 {
 	bStopTasksBetweenModes = true;
 
-	//Initialize launcher PID controller
-	vel_PID_InitController(&launcherPID, launcherQuad, 0.0035, 0, 0.03, 30, 50);
+	//Initialize launcher TBH controller
 	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 75);
 
 	//Iniialize all sensors
@@ -133,16 +132,16 @@ task usercontrol()
 
 	//Drivetrain variables
 	int leftV, rightV;
+	const int drivetrainSlewRate = 5;
 
 	//Intake variables
-	const int intakeTimeoutMs = 2500;
-	float intakeLastTime = 0;
-	bool intake_prevStateIn = false, intakePrevState = false;
+	const int intakeTimeoutMs = 2000, intakeMinimumError = 2;
+	bool intake_prevStateIn = false, intakePrevState = false, intakeUseTimeout = true;
 
 	//Launcher variables
 	bool launcherOn = false, stepController = true;
 	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
-	int launcherPOWER = 52, launcherPID_OUT = 0, launcherCurrentPower = 0, launcherRPMIncrement = 1;
+	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
 	startTask(motorSlewRateTask);
 
@@ -150,10 +149,12 @@ task usercontrol()
 
 	string line1String, line2String;
 
-	timer launcherTimer, t;
+	timer launcherTimer, intakeTimer, intakeTimerTimer, t;
 	timer_Initialize(&launcherTimer);
-	timer_Initialize(&t);
+	timer_Initialize(&intakeTimer);
+	timer_Initialize(&intakeTimerTimer);
 
+	//timer_Initialize(&t);
 	//while (timer_GetDTFromStart(t) <= 8000)
 	while(true)
 	{
@@ -176,7 +177,7 @@ task usercontrol()
 		if (!launcherOn)
 		{
 			//Change drive motors' slew rate back to normal after launcher control
-			setAllDriveMotorsSlewRate(MOTOR_FAST_SLEW_RATE);
+			setAllDriveMotorsSlewRate(drivetrainSlewRate);
 
 			//Grab values from joystick
 			leftV = vexRT[JOY_JOY_LV];
@@ -212,9 +213,44 @@ task usercontrol()
 		//Inside intake should turn inwards
 		if (vexRT[JOY_TRIG_LD])
 		{
-			//After exiting this conditional, the intake will have been running inwards so set the flag
-			intake_prevStateIn = true;
-			setInsideIntakeMotors(127);
+			//If launcher is running
+			if (launcherOn)
+			{
+				//If ball is ready
+				if (SensorValue[intakeLimit] == 1)
+				{
+					//Place timeout mark
+					timer_PlaceHardMarker(&intakeTimer);
+
+					//If velocity controller has low error
+					if (vel_TBH_GetError(&tbh) <= intakeMinimumError)
+					{
+						//After exiting this block, the intake will have been running inwards so set the flag
+						intake_prevStateIn = true;
+						setInsideIntakeMotors(127);
+					}
+					//If velocity controller does not have low error but intake timeout has expired
+					else if (intakeUseTimeout && timer_GetDTFromMarker(&intakeTimer) >= intakeTimeoutMs)
+					{
+						//After exiting this block, the intake will have been running inwards so set the flag
+						intake_prevStateIn = true;
+						setInsideIntakeMotors(127);
+
+						//Do not use the timeout after this
+						intakeUseTimeout = false;
+
+						//Light timeout LED
+						intakeLED = LED_ON;
+					}
+				}
+			}
+			//If launcher is not running
+			else
+			{
+				//After exiting this block, the intake will have been running inwards so set the flag
+				intake_prevStateIn = true;
+				setInsideIntakeMotors(127);
+			}
 		}
 		//Inside intake should turn outwards
 		else if (vexRT[JOY_BTN_LD])
@@ -236,7 +272,7 @@ task usercontrol()
 				//Stop the intake
 				setInsideIntakeMotors(0);
 
-				//After exiting this conditional, the intake will not have been running
+				//After exiting this block, the intake will not have been running
 				intake_prevStateIn = false;
 			}
 			//If the intake was not previously turning inwards
@@ -258,7 +294,7 @@ task usercontrol()
 			waitForZero(vexRT[JOY_TRIG_RD]);
 		}
 
-		//PID math flag
+		//Velocity controller math flag
 		if (vexRT[JOY_TRIG_RU])
 		{
 			stepController = !stepController;
@@ -270,22 +306,9 @@ task usercontrol()
 		//If the launcher should run
 		if (launcherOn)
 		{
-			//If the PID controller should step its calculations
+			//If the velocity controller should step its calculations
 			if (stepController)
 			{
-				/*
-				//Set the PID controller's target velocity to the new target velocity
-				launcherPID.targetVelocity = launcherTargetRPM;
-
-				//Get the PID controller's output
-				//launcherPID_OUT = vel_PID_StepController_VEL(&launcherPID);
-				//launcherPID_OUT = vel_PID_StepController_ACCEL(&launcherPID);
-				launcherPID_OUT = vel_TBH_StepController_VEL(&launcherTBH);
-
-				//Bound the PID controller's output to [0, inf) so the launcher's motors can't reverse
-				launcherPID_OUT = launcherPID_OUT < 0 ? 0 : launcherPID_OUT;
-				*/
-
 				//Set the TBH controller's target velocity to the new target velocity
 				//if the target velocity has changed
 				if (launcherTargetRPM != launcherTargetRPM_last)
@@ -342,14 +365,6 @@ task usercontrol()
 		//If the launcher should not run
 		else
 		{
-			/*
-			//Keep setting the PID controller's current velocity without stepping itself
-			launcherPID.currentVelocity = 0.0;
-
-			//Reset the output
-			launcherPID.outVal = 0.0;
-			*/
-
 			//Step velocity calculation
 			vel_TBH_StepVelocity(&launcherTBH);
 		}
