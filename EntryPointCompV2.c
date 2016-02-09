@@ -223,7 +223,7 @@ task usercontrol()
 					timer_PlaceHardMarker(&intakeTimer);
 
 					//If velocity controller has low error
-					if (vel_TBH_GetError(&tbh) <= intakeMinimumError)
+					if (vel_TBH_GetError(&launcherTBH) <= intakeMinimumError)
 					{
 						//After exiting this block, the intake will have been running inwards so set the flag
 						intake_prevStateIn = true;
@@ -240,7 +240,7 @@ task usercontrol()
 						intakeUseTimeout = false;
 
 						//Light timeout LED
-						intakeLED = LED_ON;
+						SensorValue[intakeLED] = LED_ON;
 					}
 				}
 			}
