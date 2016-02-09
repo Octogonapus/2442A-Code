@@ -6,7 +6,7 @@
 void redRightAutonPrimary()
 {
 	//Launch four preloads
-	launchFourBalls(195);
+	launchFourBalls(90);
 }
 
 #endif

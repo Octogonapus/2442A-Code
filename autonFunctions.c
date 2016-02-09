@@ -638,13 +638,21 @@ task maintainLauncherForAuton()
 		auton_maintainLauncher_target_last = auton_maintainLauncher_target;
 
 		//Step the TBH controller and get the output
-		launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
+		if (launcherTBH.currentVelocity <= auton_maintainLauncher_target - 20)
+		{
+			vel_TBH_StepVelocity(&launcherTBH);
+			launcherCurrentPower = 127;
+		}
+		else
+		{
+			launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
+		}
 
 		//Bound the TBH controller's output to [0, inf) so the launcher's motors always run in the correct direction
 		launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 
 		//Set motors to low slew rate to minimize torque on launcher
-		setAllDriveMotorsSlewRate(0.7);
+		setAllDriveMotorsSlewRate(1);
 		setAllDriveMotors(-launcherCurrentPower);
 
 		wait1Msec(25);
@@ -653,6 +661,7 @@ task maintainLauncherForAuton()
 
 void launchFourBalls(int target)
 {
+	const int intakeMinimumError = 2;
 	int ballCount = 0, intakeLimit_last = 0;
 
 	auton_maintainLauncher_target = target;
@@ -672,7 +681,7 @@ void launchFourBalls(int target)
 		}
 
 		//If launcher velocity is in acceptable bounds
-		if (launcherTBH.currentVelocity < target + 5 && launcherTBH.currentVelocity > target - 5)
+		if (vel_TBH_GetError(&launcherTBH) <= intakeMinimumError)
 		{
 			//Run intake to launch a ball
 			setIntakeMotorsRaw(127);
@@ -686,6 +695,8 @@ void launchFourBalls(int target)
 			//Remember current intake limit switch position
 			intakeLimit_last = SensorValue[intakeLimit];
 		}
+
+		wait1Msec(5);
 	}
 
 	setIntakeMotorsRaw(0);
