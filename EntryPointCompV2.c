@@ -256,6 +256,7 @@ task usercontrol()
 		else if (vexRT[JOY_BTN_LD])
 		{
 			setInsideIntakeMotors(-127);
+			timer_ClearHardMarker(&intakeTimer);
 		}
 		//Inside intake should not run
 		else
@@ -281,6 +282,8 @@ task usercontrol()
 				//Stop the intake
 				setInsideIntakeMotors(0);
 			}
+
+			timer_ClearHardMarker(&intakeTimer);
 		}
 
 		/* ------------- LAUNCHER ------------- */
