@@ -131,7 +131,7 @@ task usercontrol()
 	//stopTask(autonomous);
 
 	//Reinitialize velocity controller after autonomous
-	vel_TBH_InitController(&launcherTBH);
+	vel_TBH_ReInitController(&launcherTBH);
 
 	//Drivetrain variables
 	int leftV, rightV;
@@ -161,7 +161,7 @@ task usercontrol()
 	while(true)
 	{
 		writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
-			                                   vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
+			                                     vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
 
 		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
 		//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
@@ -171,7 +171,7 @@ task usercontrol()
 		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 		//sprintf(line2String, "CP:%d", launcherCurrentPower);
 		//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
-		sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetOutValApprox(&launcherTBH));
+		sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetOpenLoopApprox(&launcherTBH));
 		displayLCDCenteredString(1, line2String);
 
 		/* ------------ DRIVETRAIN ------------ */
