@@ -135,7 +135,7 @@ task usercontrol()
 
 	//Drivetrain variables
 	int leftV, rightV;
-	const int drivetrainSlewRate = 5;
+	const int drivetrainSlewRate = 50;
 
 	//Intake variables
 	const int intakeTimeoutMs = 2000, intakeMinimumError = 2;
@@ -202,6 +202,13 @@ task usercontrol()
 			setRightDriveMotors(rightV);
 		}
 
+		if (vexRT[JOY_TRIG_RU])
+		{
+			driveQuad(-127, 750);
+
+			waitForZero(vexRT[JOY_TRIG_RU]);
+		}
+
 		/* -------------- INTAKE -------------- */
 
 		//Outside intake should turn inwards
@@ -252,6 +259,13 @@ task usercontrol()
 						//Light timeout LED
 						SensorValue[intakeLED] = LED_ON;
 					}
+				}
+				//If ball is not ready
+				else
+				{
+					//After exiting this block, the intake will have been running inwards so set the flag
+					intake_prevStateIn = true;
+					setInsideIntakeMotors(127);
 				}
 			}
 			//If launcher is not running
@@ -305,15 +319,6 @@ task usercontrol()
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_TRIG_RD]);
-		}
-
-		//Velocity controller math flag
-		if (vexRT[JOY_TRIG_RU])
-		{
-			stepController = !stepController;
-
-			//Wait for the button to be released before continuing
-			waitForZero(vexRT[JOY_TRIG_RU]);
 		}
 
 		//If the launcher should run
