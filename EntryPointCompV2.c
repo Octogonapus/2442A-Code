@@ -411,7 +411,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RU])
 		{
 			launcherTargetRPM += launcherRPMIncrement;
-			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcherTBH.outValApprox + 1);
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, vel_TBH_GetOpenLoopApprox(&launcherTBH) + 1);
 
 			launcherPOWER++;
 
@@ -423,7 +423,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_RD])
 		{
 			launcherTargetRPM -= launcherRPMIncrement;
-			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcherTBH.outValApprox - 1);
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, vel_TBH_GetOpenLoopApprox(&launcherTBH) - 1);
 
 			launcherPOWER--;
 
