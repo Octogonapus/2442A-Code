@@ -152,27 +152,34 @@ task usercontrol()
 
 	string line1String, line2String;
 
-	timer launcherTimer, intakeTimer, t;
+	timer launcherTimer, intakeTimer, lcdTimer, t;
 	timer_Initialize(&launcherTimer);
 	timer_Initialize(&intakeTimer);
+	timer_Initialize(&lcdTimer);
 
 	//timer_Initialize(&t);
 	//while (timer_GetDTFromStart(t) <= 8000)
 	while(true)
 	{
-		writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
-			                                     vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
+		//writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
+		//	                                     vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
 
-		//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
-		//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
-		sprintf(line1String, "RPM: %d", vel_TBH_GetVelocity(&launcherTBH));
-		displayLCDCenteredString(0, line1String);
+		//Update LCD every 500 ms
+		if (timer_Repeat(&lcdTimer, 500))
+		{
 
-		//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
-		//sprintf(line2String, "CP:%d", launcherCurrentPower);
-		//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
-		sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetOpenLoopApprox(&launcherTBH));
-		displayLCDCenteredString(1, line2String);
+			//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
+			//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
+			sprintf(line1String, "RPM: %d", vel_TBH_GetVelocity(&launcherTBH));
+			displayLCDCenteredString(0, line1String);
+
+			//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
+			//sprintf(line2String, "CP:%d", launcherCurrentPower);
+			//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
+			sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetOpenLoopApprox(&launcherTBH));
+			displayLCDCenteredString(1, line2String);
+
+		}
 
 		/* ------------ DRIVETRAIN ------------ */
 
@@ -525,13 +532,18 @@ void startAutonomous()
 //LCD Library callback function
 void invoke(int func)
 {
-	if (func == 1)
+	switch (func)
 	{
-		endPreAuton = true;
-		stopTask(updateLCDTask);
-	}
-	else if (func == 2)
-	{
-		autonSelection = selectAutonomous();
+		case 1:
+			endPreAuton = true;
+			stopTask(updateLCDTask);
+			break;
+
+		case 2:
+			autonSelection = selectAutonomous();
+			break;
+
+		default:
+			break;
 	}
 }
