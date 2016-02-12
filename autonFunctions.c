@@ -71,8 +71,6 @@ void initializeSensors()
 {
 	clearDebugStream();
 
-	_sensorResetTypeTo(launcherQuad, sensorQuadEncoder);
-	SensorValue[launcherQuad] = 0;
 	_sensorResetTypeTo(leftDriveQuad, sensorQuadEncoder);
 	SensorValue[leftDriveQuad] = 0;
 	_sensorResetTypeTo(rightDriveQuad, sensorQuadEncoder);
@@ -346,7 +344,7 @@ byte driveQuad(const int power, const int ticks)
 /* Subroutine - Drives for a distance to align with a line                 */
 /*                                                                         */
 /***************************************************************************/
-void alignWithLine(const int power, const int alignPower, const int lineCutoff = 500)
+byte alignWithLine(const int power, const int alignPower, const int lineCutoff = 500)
 {
 	bool keepRunning = true; //Keep driving to align the robot
 
@@ -391,7 +389,7 @@ void alignWithLine(const int power, const int alignPower, const int lineCutoff =
 			{
 				//Exit from function
 				setAllDriveMotorsRaw(0);
-				f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+				f_distanceLeft = 0;
 				f_type = F_TYPE_DRIVE;
 				return 1;
 			}
@@ -401,7 +399,7 @@ void alignWithLine(const int power, const int alignPower, const int lineCutoff =
 		if (collisionHappened)
 		{
 			setAllDriveMotorsRaw(0);
-			f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+			f_distanceLeft = 0;
 			f_type = F_TYPE_DRIVE;
 			return 1;
 		}
