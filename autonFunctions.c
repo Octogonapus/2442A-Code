@@ -258,22 +258,26 @@ byte driveQuad(const int power, const int ticks)
 		setLeftDriveMotorsRaw(power);
 		setRightDriveMotorsRaw(power + rMod);
 
-		//If quad encoders have not moved
-		if (SensorValue[leftDriveQuad] == leftLast || SensorValue[rightDriveQuad] == rightLast)
-		{
-			//Place marker
-			timer_PlaceHardMarker(&timeoutTimer);
+		////If quad encoders have not moved
+		//if (SensorValue[leftDriveQuad] == leftLast || SensorValue[rightDriveQuad] == rightLast)
+		//{
+		//	//Place marker
+		//	timer_PlaceHardMarker(&timeoutTimer);
 
-			//If timeout has been running for too long
-			if (timer_GetDTFromHardMarker(&timeoutTimer) >= timeoutMs)
-			{
-				//Exit from function
-				setAllDriveMotorsRaw(0);
-				f_distanceLeft = ticks - SensorValue[leftDriveQuad];
-				f_type = F_TYPE_DRIVE;
-				return 1;
-			}
-		}
+		//	//If timeout has been running for too long
+		//	if (timer_GetDTFromHardMarker(&timeoutTimer) >= timeoutMs)
+		//	{
+		//		//Exit from function
+		//		setAllDriveMotorsRaw(0);
+		//		f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+		//		f_type = F_TYPE_DRIVE;
+		//		return 1;
+		//	}
+		//}
+		//else
+		//{
+		//	timer_ClearHardMarker(&timeoutTimer);
+		//}
 
 		//Save current quad values
 		leftLast = SensorValue[leftDriveQuad];
@@ -287,6 +291,8 @@ byte driveQuad(const int power, const int ticks)
 			f_type = F_TYPE_DRIVE;
 			return 1;
 		}
+
+		wait1Msec(5);
 	}
 
 	//1/3 power for last 10% of ticks
@@ -318,6 +324,10 @@ byte driveQuad(const int power, const int ticks)
 				return 1;
 			}
 		}
+		else
+		{
+			timer_ClearHardMarker(&timeoutTimer);
+		}
 
 		//Save current quad values
 		leftLast = SensorValue[leftDriveQuad];
@@ -331,6 +341,8 @@ byte driveQuad(const int power, const int ticks)
 			f_type = F_TYPE_DRIVE;
 			return 1;
 		}
+
+		wait1Msec(5);
 	}
 
 	driveTime(-1 * (power / 2), -1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
@@ -783,7 +795,7 @@ task maintainLauncherForAuton()
 		launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 
 		//Set motors to low slew rate to minimize torque on launcher
-		setAllDriveMotorsSlewRate(1);
+		setAllDriveMotorsSlewRate(0.7);
 		setAllDriveMotors(-launcherCurrentPower);
 
 		wait1Msec(25);
@@ -799,7 +811,7 @@ void launchFourBalls(int target)
 	startTask(maintainLauncherForAuton);
 
 	//Run until 4 balls have been launched
-	while (ballCount <= 4)
+	while (ballCount < 4)
 	{
 		//Make sure a ball is ready to fire
 		if (SensorValue[intakeLimit] != 1)

@@ -75,7 +75,7 @@ void pre_auton()
 	bStopTasksBetweenModes = true;
 
 	//Initialize launcher TBH controller
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 75);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.015, 75);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -125,9 +125,9 @@ task autonomous()
 
 task usercontrol()
 {
-	//startTask(autonomous);
-	//wait1Msec(15000);
-	//stopTask(autonomous);
+	startTask(autonomous);
+	wait1Msec(15000);
+	stopTask(autonomous);
 
 	//Reinitialize velocity controller after autonomous
 	vel_TBH_ReInitController(&launcherTBH);
@@ -205,6 +205,9 @@ task usercontrol()
 		{
 			driveQuad(-127, 750);
 
+			launcherTargetRPM = 70;
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 57);
+
 			waitForZero(vexRT[JOY_TRIG_RU]);
 		}
 
@@ -239,24 +242,39 @@ task usercontrol()
 					timer_PlaceHardMarker(&intakeTimer);
 
 					//If velocity controller has low error
-					if (vel_TBH_GetError(&launcherTBH) <= intakeMinimumError)
+					if (vel_TBH_GetError(&launcherTBH) < intakeMinimumError)
 					{
 						//After exiting this block, the intake will have been running inwards so set the flag
 						intake_prevStateIn = true;
 						setInsideIntakeMotors(127);
 					}
-					//If velocity controller does not have low error but intake timeout has expired
-					else if (intakeUseTimeout && timer_GetDTFromMarker(&intakeTimer) >= intakeTimeoutMs)
+					////If velocity controller does not have low error but intake timeout has expired
+					//else if (intakeUseTimeout && timer_GetDTFromMarker(&intakeTimer) >= intakeTimeoutMs)
+					//{
+					//	//After exiting this block, the intake will have been running inwards so set the flag
+					//	intake_prevStateIn = true;
+					//	setInsideIntakeMotors(127);
+
+					//	//Do not use the timeout after this
+					//	intakeUseTimeout = false;
+
+					//	//Light timeout LED
+					//	SensorValue[intakeLED] = LED_ON;
+					//}
+					//Launcher not ready
+					else
 					{
-						//After exiting this block, the intake will have been running inwards so set the flag
-						intake_prevStateIn = true;
-						setInsideIntakeMotors(127);
+						if (intake_prevStateIn)
+						{
+							//Send a backwards jolt to the intake
+							setInsideIntakeMotors(-127);
+							wait1Msec(40);
+							setInsideIntakeMotors(127);
+							wait1Msec(10);
+							setInsideIntakeMotors(0);
 
-						//Do not use the timeout after this
-						intakeUseTimeout = false;
-
-						//Light timeout LED
-						SensorValue[intakeLED] = LED_ON;
+							intake_prevStateIn = false;
+						}
 					}
 				}
 				//If ball is not ready
@@ -362,7 +380,7 @@ task usercontrol()
 			}
 
 			//Rev launcher
-			if (timer_GetDTFromMarker(&launcherTimer) <= 285)
+			if (timer_GetDTFromMarker(&launcherTimer) <= 50)
 			{
 				//If target is high
 				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
