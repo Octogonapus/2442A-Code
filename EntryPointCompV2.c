@@ -164,8 +164,8 @@ task usercontrol()
 		//writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
 		//	                                     vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
 
-		//Update LCD every 500 ms
-		if (timer_Repeat(&lcdTimer, 500))
+		//Update LCD every 250 ms
+		if (timer_Repeat(&lcdTimer, 250))
 		{
 
 			//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
