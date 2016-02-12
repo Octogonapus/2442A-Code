@@ -236,13 +236,40 @@ byte driveQuad(const int power, const int ticks)
 	int rDiff;                                                  //Difference between sides
 	int rMod;                                                   //10% of power in the direction of rDiff
 
+	timer timeoutTimer;                                         //Timer for function timeout
+	int leftLast = 0, rightLast = 0;
+
+	timer_Initialize(&timeoutTimer);                            //Initialize function timeout timer
+
 	//Full power for 90% of ticks
 	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) * 0.9)
 	{
-		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
-		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
-		setLeftDriveMotorsRaw(power);                                                  //Directly control left side
-		setRightDriveMotorsRaw(power + rMod);                                          //Have right side adjust to keep in tune with left side
+		//Difference between left and right sides
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);
+
+		//10% of power in the direction of rDiff, determined by which side is lagging
+		rMod = sgn(rDiff) * power * 0.1;
+
+		//Directly contorl left side and have right side follow
+		setLeftDriveMotorsRaw(power);
+		setRightDriveMotorsRaw(power + rMod);
+
+		//If quad encoders have not moved
+		if (SensorValue[leftDriveQuad] == leftLast || SensorValue[rightDriveQuad] == rightLast)
+		{
+			//Place marker
+			timer_PlaceHardMarker(&timeoutTimer);
+
+			//If timeout has been running for 2 seconds
+			if (timer_GetDTFromHardMarker(&timeoutTimer) >= 2000)
+			{
+				//Exit from function
+				setAllDriveMotorsRaw(0);
+				f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+				f_type = F_TYPE_DRIVE;
+				return 1;
+			}
+		}
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -257,10 +284,32 @@ byte driveQuad(const int power, const int ticks)
 	//1/3 power for last 10% of ticks
 	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) - 10)
 	{
-		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);    //Difference between sides
-		rMod = sgn(rDiff) * power * 0.1;                                               //10% of power in the direction of rDiff
-		setLeftDriveMotorsRaw(power / 3);                                              //Directly control left side
-		setRightDriveMotorsRaw((power / 3) + rMod);                                    //Have right side adjust to keep in tune with left side
+		//Difference between sides
+		rDiff = abs(SensorValue[leftDriveQuad]) - abs(SensorValue[rightDriveQuad]);
+
+		//10% of power in the direction of rDiff, determined by which side is lagging
+		rMod = sgn(rDiff) * power * 0.1;
+
+		//Directly control left side and have right side follow
+		setLeftDriveMotorsRaw(power / 3);
+		setRightDriveMotorsRaw((power / 3) + rMod);
+
+		//If quad encoders have not moved
+		if (SensorValue[leftDriveQuad] == leftLast || SensorValue[rightDriveQuad] == rightLast)
+		{
+			//Place marker
+			timer_PlaceHardMarker(&timeoutTimer);
+
+			//If timeout has been running for 2 seconds
+			if (timer_GetDTFromHardMarker(&timeoutTimer) >= 2000)
+			{
+				//Exit from function
+				setAllDriveMotorsRaw(0);
+				f_distanceLeft = ticks - SensorValue[leftDriveQuad];
+				f_type = F_TYPE_DRIVE;
+				return 1;
+			}
+		}
 
 		//Exit if collision has happened
 		if (collisionHappened)
