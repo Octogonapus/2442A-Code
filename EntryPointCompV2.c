@@ -141,7 +141,7 @@ task usercontrol()
 	bool intake_prevStateIn = false, intakePrevState = false, intakeUseTimeout = true;
 
 	//Launcher variables
-	bool launcherOn = false, stepController = true;
+	bool launcherOn = false;
 	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
@@ -163,8 +163,8 @@ task usercontrol()
 		//writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
 		//	                                     vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
 
-		//Update LCD every 250 ms
-		if (timer_Repeat(&lcdTimer, 250))
+		//Update LCD every 100 ms
+		if (timer_Repeat(&lcdTimer, 100))
 		{
 
 			//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
@@ -175,7 +175,7 @@ task usercontrol()
 			//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 			//sprintf(line2String, "CP:%d", launcherCurrentPower);
 			//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
-			sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetOpenLoopApprox(&launcherTBH));
+			sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), launcherCurrentPower, vel_TBH_GetOpenLoopApprox(&launcherTBH));
 			displayLCDCenteredString(1, line2String);
 
 		}
@@ -284,7 +284,7 @@ task usercontrol()
 		//Inside intake should not run
 		else
 		{
-			//If the intake was previously turning intwards, stop it from drifting
+			//If the intake was previously turning inwards, stop it from drifting
 			if (intake_prevStateIn)
 			{
 				//Send a backwards jolt to the intake
@@ -323,60 +323,65 @@ task usercontrol()
 		//If the launcher should run
 		if (launcherOn)
 		{
-			//If the velocity controller should step its calculations
-			if (stepController)
+			//Set the TBH controller's target velocity to the new target velocity
+			//if the target velocity has changed
+			if (launcherTargetRPM != launcherTargetRPM_last)
 			{
-				//Set the TBH controller's target velocity to the new target velocity
-				//if the target velocity has changed
-				if (launcherTargetRPM != launcherTargetRPM_last)
-				{
-					vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
-				}
+				vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM);
+			}
 
-				//Remember the current target rpm
-				launcherTargetRPM_last = launcherTargetRPM;
+			//Remember the current target rpm
+			launcherTargetRPM_last = launcherTargetRPM;
 
-				//Rev the launcher to 127 while far under target
-				if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
-				{
-					vel_TBH_StepVelocity(&launcherTBH);
-					launcherCurrentPower = 127;
-				}
-				//Use a velocity controller when close to target
-				else
-				{
-					//Step the TBH controller and get the output
-					launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
+			//Rev the launcher to 127 while far under target
+			if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
+			{
+				vel_TBH_StepVelocity(&launcherTBH);
+				launcherCurrentPower = 127;
+			}
+			//Use a velocity controller when close to target
+			else
+			{
+				//Step the TBH controller and get the output
+				launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
 
-					//Bound the output to [0, inf) to prevent the launcher from running backwards
-					launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
-				}
+				//Bound the output to [0, inf) to prevent the launcher from running backwards
+				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+			}
 
-				//Rev the launcher right before firing a ball
-				if (SensorValue[intakeLimit] == 1)
+			//Rev the launcher right before firing a ball
+			if (SensorValue[intakeLimit] == 1)
+			{
+				//Set intakePrevState to true for the first time a ball is ready
+				//in order to control the rev timer correctly
+				if (!intakePrevState)
 				{
-					//Set intakePrevState to true for the first time a ball is ready
-					//in order to control the rev timer correctly
-					if (!intakePrevState)
-					{
-						intakePrevState = true;
-						timer_PlaceMarker(&launcherTimer);
-					}
-				}
-
-				//Rev launcher
-				if (timer_GetDTFromMarker(&launcherTimer) <= 285)
-				{
-					launcherCurrentPower = 127;
-				}
-				else if (SensorValue[intakeLimit] == 0)
-				{
-					intakePrevState = false;
+					intakePrevState = true;
+					timer_PlaceMarker(&launcherTimer);
 				}
 			}
 
+			//Rev launcher
+			if (timer_GetDTFromMarker(&launcherTimer) <= 285)
+			{
+				//If target is high
+				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
+				{
+					launcherCurrentPower = 127;
+				}
+				//If target is low
+				else
+				{
+					launcherCurrentPower = 100;
+				}
+			}
+			else if (SensorValue[intakeLimit] == 0)
+			{
+				intakePrevState = false;
+			}
+
 			//Set motors to low slew rate to minimize torque on launcher
-			setAllDriveMotorsSlewRate(1);
+			setAllDriveMotorsSlewRate(0.7);
 			setAllDriveMotors(-launcherCurrentPower);
 		}
 		//If the launcher should not run

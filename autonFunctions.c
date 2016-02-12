@@ -243,7 +243,7 @@ byte driveQuad(const int power, const int ticks)
 	int leftLast = 0, rightLast = 0;
 
 	//Function timeout in ms
-	const int timeoutMs = 500;
+	const int timeoutMs = 2000;
 
 	//Full power for 90% of ticks
 	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) * 0.9)
@@ -264,7 +264,7 @@ byte driveQuad(const int power, const int ticks)
 			//Place marker
 			timer_PlaceHardMarker(&timeoutTimer);
 
-			//If timeout has been running for 2 seconds
+			//If timeout has been running for too long
 			if (timer_GetDTFromHardMarker(&timeoutTimer) >= timeoutMs)
 			{
 				//Exit from function
