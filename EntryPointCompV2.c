@@ -169,7 +169,7 @@ task usercontrol()
 
 			//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
 			//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
-			sprintf(line1String, "RPM: %d, %d", vel_TBH_GetError(&launcherTBH), abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError);
+			sprintf(line1String, "E:%d, B:%d", vel_TBH_GetError(&launcherTBH), abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError);
 			displayLCDCenteredString(0, line1String);
 
 			//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);

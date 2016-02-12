@@ -6,7 +6,7 @@
 void blueRightAutonPrimary()
 {
 	//Launch four preloads
-	launchFourBalls(90);
+	launchFourBalls(95);
 
 	////Turn and face the stack offset from the wall
 	//turnGyro(60, 35);
