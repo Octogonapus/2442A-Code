@@ -810,8 +810,10 @@ void launchFourBalls(int target)
 	auton_maintainLauncher_target = target;
 	startTask(maintainLauncherForAuton);
 
+	wait1Msec(1000);
+
 	//Run until 4 balls have been launched
-	while (ballCount < 4)
+	while (ballCount < 5)
 	{
 		//Make sure a ball is ready to fire
 		if (SensorValue[intakeLimit] != 1)

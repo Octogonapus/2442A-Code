@@ -75,7 +75,7 @@ void pre_auton()
 	bStopTasksBetweenModes = true;
 
 	//Initialize launcher TBH controller
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.015, 75);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 75);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -125,9 +125,9 @@ task autonomous()
 
 task usercontrol()
 {
-	startTask(autonomous);
-	wait1Msec(15000);
-	stopTask(autonomous);
+	//startTask(autonomous);
+	//wait1Msec(15000);
+	//stopTask(autonomous);
 
 	//Reinitialize velocity controller after autonomous
 	vel_TBH_ReInitController(&launcherTBH);
@@ -138,10 +138,10 @@ task usercontrol()
 
 	//Intake variables
 	const int intakeTimeoutMs = 2000, intakeMinimumError = 2;
-	bool intake_prevStateIn = false, intakePrevState = false, intakeUseTimeout = true;
+	bool intake_prevStateIn = false, intakePrevState = false;
 
 	//Launcher variables
-	bool launcherOn = false;
+	bool launcherOn = false, launcherBypass = false;
 	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
@@ -169,7 +169,7 @@ task usercontrol()
 
 			//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
 			//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
-			sprintf(line1String, "RPM: %d", vel_TBH_GetVelocity(&launcherTBH));
+			sprintf(line1String, "RPM: %d, %d", vel_TBH_GetError(&launcherTBH), abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError);
 			displayLCDCenteredString(0, line1String);
 
 			//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
@@ -242,11 +242,19 @@ task usercontrol()
 					timer_PlaceHardMarker(&intakeTimer);
 
 					//If velocity controller has low error
-					if (vel_TBH_GetError(&launcherTBH) < intakeMinimumError)
+					if (abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError)
 					{
+						launcherBypass = true;
+
 						//After exiting this block, the intake will have been running inwards so set the flag
 						intake_prevStateIn = true;
 						setInsideIntakeMotors(127);
+						wait1Msec(50);
+
+						if (SensorValue[intakeLimit] == 0)
+						{
+							launcherBypass = false;
+						}
 					}
 					////If velocity controller does not have low error but intake timeout has expired
 					//else if (intakeUseTimeout && timer_GetDTFromMarker(&intakeTimer) >= intakeTimeoutMs)
@@ -274,6 +282,10 @@ task usercontrol()
 							setInsideIntakeMotors(0);
 
 							intake_prevStateIn = false;
+						}
+						else
+						{
+							setInsideIntakeMotors(0);
 						}
 					}
 				}
@@ -354,7 +366,8 @@ task usercontrol()
 			//Rev the launcher to 127 while far under target
 			if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
 			{
-				vel_TBH_StepVelocity(&launcherTBH);
+				//vel_TBH_StepVelocity(&launcherTBH);
+				vel_TBH_StepController(&launcherTBH);
 				launcherCurrentPower = 127;
 			}
 			//Use a velocity controller when close to target
@@ -380,7 +393,7 @@ task usercontrol()
 			}
 
 			//Rev launcher
-			if (timer_GetDTFromMarker(&launcherTimer) <= 50)
+			if (timer_GetDTFromMarker(&launcherTimer) <= 300)
 			{
 				//If target is high
 				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
