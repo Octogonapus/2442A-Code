@@ -1,10 +1,8 @@
 #pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Sensor, in1,    powerExpander,  sensorAnalog)
 #pragma config(Sensor, in2,    gyro,           sensorGyro)
-#pragma config(Sensor, in3,    accelX,         sensorAccelerometer)
-#pragma config(Sensor, in4,    accelY,         sensorAccelerometer)
-#pragma config(Sensor, in5,    leftLineSensor, sensorLineFollower)
-#pragma config(Sensor, in6,    rightLineSensor, sensorLineFollower)
+#pragma config(Sensor, in3,    leftLineSensor, sensorLineFollower)
+#pragma config(Sensor, in4,    rightLineSensor, sensorLineFollower)
 #pragma config(Sensor, dgtl1,  intakeLED,      sensorLEDtoVCC)
 #pragma config(Sensor, dgtl3,  brake,          sensorDigitalOut)
 #pragma config(Sensor, dgtl4,  shifter,        sensorDigitalOut)
@@ -95,8 +93,8 @@ void pre_auton()
 
 	//Menu system
 	//Level 1 - General Info
-	programmingSkillsMenu = newMenu("Prog Skills", 3);
 	autonomousSelectionMenu = newMenu("Select Auton", 2);
+	programmingSkillsMenu = newMenu("Prog Skills", 3);
 	endPreAutonMenu = newMenu("Confirm", 1);
 
 	string batteryVoltage;
