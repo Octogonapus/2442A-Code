@@ -64,6 +64,7 @@ vel_TBH launcherTBH;
 
 //Menus
 //Level 1 - General Info
+menu *programmingSkillsMenu;
 menu *autonomousSelectionMenu;
 menu *endPreAutonMenu;
 menu *batteryVoltageMenu;
@@ -94,6 +95,7 @@ void pre_auton()
 
 	//Menu system
 	//Level 1 - General Info
+	programmingSkillsMenu = newMenu("Prog Skills", 3);
 	autonomousSelectionMenu = newMenu("Select Auton", 2);
 	endPreAutonMenu = newMenu("Confirm", 1);
 
@@ -109,7 +111,7 @@ void pre_auton()
 	sprintf(backupBatteryVoltage, "Backup: %1.2f%c", BackupBatteryLevel / 1000.0, 'V');
 	backupBatteryVoltageMenu = newMenu(backupBatteryVoltage);
 
-	linkMenus(autonomousSelectionMenu, endPreAutonMenu, batteryVoltageMenu, powerExpanderVoltageMenu, backupBatteryVoltageMenu);
+	linkMenus(programmingSkillsMenu, autonomousSelectionMenu, endPreAutonMenu, batteryVoltageMenu, powerExpanderVoltageMenu, backupBatteryVoltageMenu);
 
 	bLCDBacklight = true;
 	startTask(updateLCDTask);
@@ -249,7 +251,7 @@ task usercontrol()
 						//After exiting this block, the intake will have been running inwards so set the flag
 						intake_prevStateIn = true;
 						setInsideIntakeMotors(127);
-						wait1Msec(50);
+						wait1Msec(70);
 
 						if (SensorValue[intakeLimit] == 0)
 						{
@@ -366,8 +368,8 @@ task usercontrol()
 			//Rev the launcher to 127 while far under target
 			if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
 			{
-				//vel_TBH_StepVelocity(&launcherTBH);
-				vel_TBH_StepController(&launcherTBH);
+				vel_TBH_StepVelocity(&launcherTBH);
+				//vel_TBH_StepController(&launcherTBH);
 				launcherCurrentPower = 127;
 			}
 			//Use a velocity controller when close to target
@@ -393,7 +395,7 @@ task usercontrol()
 			}
 
 			//Rev launcher
-			if (timer_GetDTFromMarker(&launcherTimer) <= 300)
+			if (timer_GetDTFromMarker(&launcherTimer) <= 260)
 			{
 				//If target is high
 				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
@@ -581,6 +583,10 @@ void invoke(int func)
 
 		case 2:
 			autonSelection = selectAutonomous();
+			break;
+
+		case 3:
+			programmingSkills();
 			break;
 
 		default:
