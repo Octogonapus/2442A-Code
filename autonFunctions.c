@@ -9,17 +9,39 @@
 /* Macros - Easy control of motors                                         */
 /*                                                                         */
 /***************************************************************************/
-#define setLeftDriveMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDriveTopFront, power); setMotorSpeed(leftDriveTopBack, power)
-#define setRightDriveMotors(power) setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDriveTopFront, power); setMotorSpeed(rightDriveTopBack, power)
-#define setAllDriveMotors(power) setLeftDriveMotors(power); setRightDriveMotors(power)
+//DRIVE
+#define setAllLeftDriveMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDrivePerma, power); setMotorSpeed(leftDriveTopBack, power)
+#define setAllRightDriveMotors(power) setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDrivePerma, power); setMotorSpeed(rightDriveTopBack, power)
+
+#define setPermaLeftDriveMotors(power) setMotorSpeed(leftDrivePerma, power)
+#define setPermaRightDriveMotors(power) setMotorSpeed(rightDrivePerma, power)
+
+#define setAllPermaDriveMotors(power) setMotorSpeed(leftDrivePerma, power); setMotorSpeed(rightDrivePerma, power)
+#define setAllDriveMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDrivePerma, power); setMotorSpeed(leftDriveTopBack, power); setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDrivePerma, power); setMotorSpeed(rightDriveTopBack, power)
+#define setAllLauncherMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDriveTopBack, power); setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDrivePerma, power); setMotorSpeed(rightDriveTopBack, power)
+
+#define setAllPermaDriveMotorsSlewRate(rate) setMotorSlew(leftDrivePerma, rate); setMotorSlew(rightDrivePerma, rate)
+#define setAllLauncherMotorsSlewRate(rate) setMotorSlew(leftDriveBottomFront, rate); setMotorSlew(leftDriveBottomBack, rate); setMotorSlew(leftDriveTopBack, rate); setMotorSlew(rightDriveBottomFront, rate); setMotorSlew(rightDriveBottomBack, rate); setMotorSlew(rightDriveTopBack, rate)
+#define setAllDriveMotorsSlewRate(rate) setMotorSlew(leftDriveBottomFront, rate); setMotorSlew(leftDriveBottomBack, rate); setMotorSlew(leftDrivePerma, rate); setMotorSlew(leftDriveTopBack, rate); setMotorSlew(rightDriveBottomFront, rate); setMotorSlew(rightDriveBottomBack, rate); setMotorSlew(rightDrivePerma, rate); setMotorSlew(rightDriveTopBack, rate)
+
+//INTAKE
 #define setOutsideIntakeMotors(power) setMotorSpeed(intakeFront, power)
 #define setInsideIntakeMotors(power) setMotorSpeed(intakeBack, power)
-#define setAllIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
-#define setAllDriveMotorsSlewRate(rate) setMotorSlew(leftDriveBottomFront, rate); setMotorSlew(leftDriveBottomBack, rate); setMotorSlew(leftDriveTopFront, rate); setMotorSlew(leftDriveTopBack, rate); setMotorSlew(rightDriveBottomFront, rate); setMotorSlew(rightDriveBottomBack, rate); setMotorSlew(rightDriveTopFront, rate); setMotorSlew(rightDriveTopBack, rate)
 
-#define setLeftDriveMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDriveTopFront] = power; motor[leftDriveTopBack] = power
-#define setRightDriveMotorsRaw(power) motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDriveTopFront] = power; motor[rightDriveTopBack] = power
-#define setAllDriveMotorsRaw(power) setLeftDriveMotorsRaw(power); setRightDriveMotorsRaw(power)
+#define setAllIntakeMotors(power) setMotorSpeed(intakeFront, power); setMotorSpeed(intakeBack, power)
+
+//RAW DRIVE
+#define setPermaLeftDriveMotorsRaw(power) motor[leftDrivePerma] = power
+#define setPermaRightDriveMotorsRaw(power) motor[rightDrivePerma] = power
+#define setLeftDriveMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDrivePerma] = power; motor[leftDriveTopBack] = power
+#define setRightDriveMotorsRaw(power) motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDrivePerma] = power; motor[rightDriveTopBack] = power
+#define setAllPermaDriveMotorRaw(power) motor[leftDrivePerma] = power; motor[rightDrivePerma] = power
+#define setAllDriveMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDrivePerma] = power; motor[leftDriveTopBack] = power; motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDrivePerma] = power; motor[rightDriveTopBack] = power
+
+//RAW LAUNCHER
+#define setAllLauncherMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDriveTopBack] = power; motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDriveTopBack] = power
+
+//RAW INTAKE
 #define setOutisdeIntakeMotorsRaw(power) motor[intakeFront] = power
 #define setInsideIntakeMotorsRaw(power) motors[intakeBack] = power
 #define setAllIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
@@ -175,23 +197,59 @@ void shiftGear(int gear = -1010)
 	switch (gear)
 	{
 		case 0:
+			if (SensorValue[shifter] == 0)
+				break;
+
 			SensorValue[shifter] = 0;
+			wait1Msec(300);
+			setAllLauncherMotorsRaw(60);
+			wait1Msec(100);
+			setAllLauncherMotorsRaw(-60);
+			wait1Msec(100);
+			setAllLauncherMotorsRaw(0);
+			break;
 
 		case 1:
+			if (SensorValue[shifter] == 1)
+				break;
+
 			SensorValue[shifter] = 1;
+			wait1Msec(300);
+			setAllPermaDriveMotors(60);
+			wait1Msec(100);
+			setAllPermaDriveMotors(-60);
+			wait1Msec(100);
+			setAllPermaDriveMotors(0);
+			break;
 
 		default:
 			SensorValue[shifter] = SensorValue[shifter] == 1 ? 0 : 1;
+
+			switch (SensorValue[shifter])
+			{
+				case 0:
+					SensorValue[shifter] = 0;
+					wait1Msec(300);
+					setAllLauncherMotorsRaw(60);
+					wait1Msec(100);
+					setAllLauncherMotorsRaw(-60);
+					wait1Msec(100);
+					setAllLauncherMotorsRaw(0);
+					break;
+
+				case 1:
+					SensorValue[shifter] = 1;
+					wait1Msec(300);
+					setAllPermaDriveMotors(60);
+					wait1Msec(100);
+					setAllPermaDriveMotors(-60);
+					wait1Msec(100);
+					setAllPermaDriveMotors(0);
+					break;
+				}
+
+			break;
 	}
-
-	wait1Msec(300);
-
-	setAllDriveMotorsRaw(60);
-	wait1Msec(100);
-	setAllDriveMotorsRaw(-60);
-	wait1Msec(100);
-
-	setAllDriveMotorsRaw(0);
 }
 
 /***************************************************************************/
