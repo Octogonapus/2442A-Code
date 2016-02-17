@@ -125,15 +125,18 @@ int selectAutonomous()
 		//Right button changes auton level
 		if (nLCDButtons & kButtonRight)
 		{
+			//Exit when holding right button
+			timer_PlaceHardMarker(&t);
 			while (nLCDButtons & kButtonRight)
 			{
-				if (timer_GetDTFromStart(&t) >= 250)
+				if (timer_GetDTFromHardMarker(&t) >= 250)
 				{
 					return (autonColor * 100) + (autonTile * 10) + autonLevel;
 				}
 
 				wait1Msec(5);
 			}
+			timer_ClearHardMarker(&t);
 
 			autonLevel = autonLevel + 1 > 3 ? 1 : autonLevel + 1;
 
@@ -238,12 +241,8 @@ byte driveQuad(const int power, const int ticks)
 	//10% of power in the direction of rDiff
 	int rMod;
 
-	//Timer for function timeout
-	timer timeoutTimer;
-	int leftLast = 0, rightLast = 0;
-
-	//Function timeout in ms
-	const int timeoutMs = 2000;
+	//Thresold for collision recognition
+	const int collisionThreshold = 20;
 
 	//Full power for 90% of ticks
 	while (abs(SensorValue[leftDriveQuad]) < abs(ticks) * 0.9)
@@ -258,30 +257,12 @@ byte driveQuad(const int power, const int ticks)
 		setLeftDriveMotorsRaw(power);
 		setRightDriveMotorsRaw(power + rMod);
 
-		////If quad encoders have not moved
-		//if (SensorValue[leftDriveQuad] == leftLast || SensorValue[rightDriveQuad] == rightLast)
-		//{
-		//	//Place marker
-		//	timer_PlaceHardMarker(&timeoutTimer);
-
-		//	//If timeout has been running for too long
-		//	if (timer_GetDTFromHardMarker(&timeoutTimer) >= timeoutMs)
-		//	{
-		//		//Exit from function
-		//		setAllDriveMotorsRaw(0);
-		//		f_distanceLeft = ticks - SensorValue[leftDriveQuad];
-		//		f_type = F_TYPE_DRIVE;
-		//		return 1;
-		//	}
-		//}
-		//else
-		//{
-		//	timer_ClearHardMarker(&timeoutTimer);
-		//}
-
-		//Save current quad values
-		leftLast = SensorValue[leftDriveQuad];
-		rightLast = SensorValue[rightDriveQuad];
+		//Exit if hit a wall
+		if (abs(SensorValue[accelX]) > collisionThreshold)
+		{
+			setAllDriveMotorsRaw(0);
+			return 1;
+		}
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -292,7 +273,7 @@ byte driveQuad(const int power, const int ticks)
 			return 1;
 		}
 
-		wait1Msec(5);
+		wait1Msec(1);
 	}
 
 	//1/3 power for last 10% of ticks
@@ -308,30 +289,12 @@ byte driveQuad(const int power, const int ticks)
 		setLeftDriveMotorsRaw(power / 3);
 		setRightDriveMotorsRaw((power / 3) + rMod);
 
-		//If quad encoders have not moved
-		if (SensorValue[leftDriveQuad] == leftLast || SensorValue[rightDriveQuad] == rightLast)
+		//Exit if hit a wall
+		if (SensorValue[accelX] > collisionThreshold)
 		{
-			//Place marker
-			timer_PlaceHardMarker(&timeoutTimer);
-
-			//If timeout has been running for 2 seconds
-			if (timer_GetDTFromHardMarker(&timeoutTimer) >= timeoutMs)
-			{
-				//Exit from function
-				setAllDriveMotorsRaw(0);
-				f_distanceLeft = ticks - SensorValue[leftDriveQuad];
-				f_type = F_TYPE_DRIVE;
-				return 1;
-			}
+			setAllDriveMotorsRaw(0);
+			return 1;
 		}
-		else
-		{
-			timer_ClearHardMarker(&timeoutTimer);
-		}
-
-		//Save current quad values
-		leftLast = SensorValue[leftDriveQuad];
-		rightLast = SensorValue[rightDriveQuad];
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -342,7 +305,7 @@ byte driveQuad(const int power, const int ticks)
 			return 1;
 		}
 
-		wait1Msec(5);
+		wait1Msec(1);
 	}
 
 	driveTime(-1 * (power / 2), -1 * (power / 2), 50);    //Brake at -50% power for a short time to eliminate momentum
