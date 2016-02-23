@@ -18,7 +18,7 @@
 
 #define setAllPermaDriveMotors(power) setMotorSpeed(leftDrivePerma, power); setMotorSpeed(rightDrivePerma, power)
 #define setAllDriveMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDrivePerma, power); setMotorSpeed(leftDriveTopBack, power); setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDrivePerma, power); setMotorSpeed(rightDriveTopBack, power)
-#define setAllLauncherMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDriveTopBack, power); setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDrivePerma, power); setMotorSpeed(rightDriveTopBack, power)
+#define setAllLauncherMotors(power) setMotorSpeed(leftDriveBottomFront, power); setMotorSpeed(leftDriveBottomBack, power); setMotorSpeed(leftDriveTopBack, power); setMotorSpeed(rightDriveBottomFront, power); setMotorSpeed(rightDriveBottomBack, power); setMotorSpeed(rightDriveTopBack, power)
 
 #define setAllPermaDriveMotorsSlewRate(rate) setMotorSlew(leftDrivePerma, rate); setMotorSlew(rightDrivePerma, rate)
 #define setAllLauncherMotorsSlewRate(rate) setMotorSlew(leftDriveBottomFront, rate); setMotorSlew(leftDriveBottomBack, rate); setMotorSlew(leftDriveTopBack, rate); setMotorSlew(rightDriveBottomFront, rate); setMotorSlew(rightDriveBottomBack, rate); setMotorSlew(rightDriveTopBack, rate)
