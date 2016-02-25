@@ -1,8 +1,10 @@
 #pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Sensor, in1,    powerExpander,  sensorAnalog)
 #pragma config(Sensor, in2,    gyro,           sensorGyro)
-#pragma config(Sensor, in3,    leftLineSensor, sensorLineFollower)
-#pragma config(Sensor, in4,    rightLineSensor, sensorLineFollower)
+#pragma config(Sensor, in3,    accelX,         sensorAccelerometer)
+#pragma config(Sensor, in4,    accelY,         sensorAccelerometer)
+#pragma config(Sensor, in5,    leftLineSensor, sensorLineFollower)
+#pragma config(Sensor, in6,    rightLineSensor, sensorLineFollower)
 #pragma config(Sensor, dgtl1,  intakeLED,      sensorLEDtoVCC)
 #pragma config(Sensor, dgtl3,  brake,          sensorDigitalOut)
 #pragma config(Sensor, dgtl4,  shifter,        sensorDigitalOut)
@@ -74,7 +76,7 @@ void pre_auton()
 	bStopTasksBetweenModes = true;
 
 	//Initialize launcher TBH controller
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.0085, 75);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.01, 75);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -133,16 +135,17 @@ task usercontrol()
 	vel_TBH_ReInitController(&launcherTBH);
 
 	//Drivetrain variables
-	int leftV, rightV;
+	int leftV = 0, rightV = 0;
 	const int drivetrainSlewRate = 50;
 
 	//Intake variables
 	const int intakeTimeoutMs = 2000, intakeMinimumError = 2;
-	bool intake_prevStateIn = false, intakePrevState = false;
+	bool intake_prevStateIn = false;
 
 	//Launcher variables
-	bool launcherOn = false, launcherBypass = false;
-	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
+	const int boostTime = (-185.29 * nAvgBatteryLevel) + 1694.29;
+	bool launcherOn = true, launcherBypass = false, revLauncher = false, limitSwitchLast = false;
+	int launcherTargetRPM = 85, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
 	startTask(motorSlewRateTask);
@@ -160,25 +163,25 @@ task usercontrol()
 	//while (timer_GetDTFromStart(t) <= 8000)
 	while (true)
 	{
-		//writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
-		//	                                     vel_TBH_GetOutput(&launcherTBH), vel_TBH_GetError(&launcherTBH));
-
 		//Update LCD every 100 ms
 		if (timer_Repeat(&lcdTimer, 100))
 		{
 
-			//sprintf(line1String, "CV:%1.2f, T:%d", launcherTBH.currentVelocity, launcherTBH.targetVelocity);
+			sprintf(line1String, "E:%d, TV:%d", vel_TBH_GetError(&launcherTBH), vel_TBH_GetTargetVelocity(&launcherTBH));
 			//sprintf(line1String, "L: %d, R: %d", getMotorVelocity(leftDriveBottomBack), getMotorVelocity(rightDriveBottomBack));
-			sprintf(line1String, "E:%d, B:%d", vel_TBH_GetError(&launcherTBH), abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError);
+			//sprintf(line1String, "Err:%d, B:%d", vel_TBH_GetError(&launcherTBH), abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError);
 			displayLCDCenteredString(0, line1String);
 
 			//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 			//sprintf(line2String, "CP:%d", launcherCurrentPower);
 			//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
-			sprintf(line2String, "T:%d,C:%d,A:%d", vel_TBH_GetTargetVelocity(&launcherTBH), launcherCurrentPower, vel_TBH_GetOpenLoopApprox(&launcherTBH));
+			sprintf(line2String, "Cur Pow:%d", launcherCurrentPower);
 			displayLCDCenteredString(1, line2String);
-
 		}
+
+		writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
+					launcherCurrentPower,
+					vel_TBH_GetError(&launcherTBH));
 
 		/* ------------ DRIVETRAIN ------------ */
 
@@ -367,8 +370,6 @@ task usercontrol()
 		{
 			launcherOn = !launcherOn;
 
-			shiftGear(1);
-
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_TRIG_RD]);
 		}
@@ -376,6 +377,9 @@ task usercontrol()
 		//If the launcher should run
 		if (launcherOn)
 		{
+			//Get into proper gear
+			shiftGear(1);
+
 			//Set the TBH controller's target velocity to the new target velocity
 			//if the target velocity has changed
 			if (launcherTargetRPM != launcherTargetRPM_last)
@@ -387,7 +391,7 @@ task usercontrol()
 			launcherTargetRPM_last = launcherTargetRPM;
 
 			//Rev the launcher to 127 while far under target
-			if (launcherTBH.currentVelocity <= launcherTargetRPM - 20)
+			if (launcherTBH.currentVelocity <= launcherTargetRPM - 10)
 			{
 				vel_TBH_StepVelocity(&launcherTBH);
 				//vel_TBH_StepController(&launcherTBH);
@@ -403,20 +407,17 @@ task usercontrol()
 				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 			}
 
-			//Rev the launcher right before firing a ball
-			if (SensorValue[intakeLimit] == 1)
+			//Rev the launcher right after firing a ball
+			if (SensorValue[intakeLimit] == 0 && limitSwitchLast)
 			{
-				//Set intakePrevState to true for the first time a ball is ready
-				//in order to control the rev timer correctly
-				if (!intakePrevState)
-				{
-					intakePrevState = true;
-					timer_PlaceMarker(&launcherTimer);
-				}
+				timer_PlaceHardMarker(&launcherTimer);
 			}
 
+			//Remember limit switch
+			limitSwitchLast = SensorValue[intakeLimit] == 1;
+
 			//Rev launcher
-			if (timer_GetDTFromMarker(&launcherTimer) <= 260)
+			if (timer_GetDTFromHardMarker(&launcherTimer) <= boostTime)
 			{
 				//If target is high
 				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
@@ -429,9 +430,10 @@ task usercontrol()
 					launcherCurrentPower = 100;
 				}
 			}
-			else if (SensorValue[intakeLimit] == 0)
+			//Timer expired
+			else
 			{
-				intakePrevState = false;
+				timer_ClearHardMarker(&launcherTimer);
 			}
 
 			//Set motors to low slew rate to minimize torque on launcher
@@ -449,7 +451,7 @@ task usercontrol()
 		//Full field shot
 		if (vexRT[JOY_BTN_RL])
 		{
-			launcherTargetRPM = 90;
+			launcherTargetRPM = 85;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 77);
 
 			launcherPOWER = 90;
@@ -496,27 +498,16 @@ task usercontrol()
 
 		/* ------------- SHIFTER ------------- */
 
-		/*
 		//Invert the shifter's state
+		//This is an unsafe shift
 		if (vexRT[JOY_BTN_LR])
 		{
-			//Do not allow a shift while the launcher is running
-			//The robot risks signifigant damage
-			if (launcherOn)
-			{
-				launcherOn = false;
-
-				//Semi e-stop motors
-				setAllDriveMotorsRaw(0);
-			}
-
 			//Shift gear
 			shiftGear();
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_LR]);
 		}
-		*/
 
 		/* ------------- PARKING BRAKE ------------- */
 
