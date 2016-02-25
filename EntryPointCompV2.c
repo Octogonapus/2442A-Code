@@ -144,7 +144,7 @@ task usercontrol()
 
 	//Launcher variables
 	const int boostTime = (-185.29 * nAvgBatteryLevel) + 1694.29;
-	bool launcherOn = true, launcherBypass = false, revLauncher = false, limitSwitchLast = false;
+	bool launcherOn = true, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
 	int launcherTargetRPM = 85, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
@@ -391,11 +391,12 @@ task usercontrol()
 			launcherTargetRPM_last = launcherTargetRPM;
 
 			//Rev the launcher to 127 while far under target
-			if (launcherTBH.currentVelocity <= launcherTargetRPM - 10)
+			if (vel_TBH_GetVelocity(&launcherTBH) <= launcherTargetRPM - 10)
 			{
 				vel_TBH_StepVelocity(&launcherTBH);
 				//vel_TBH_StepController(&launcherTBH);
 				launcherCurrentPower = 127;
+				launcherJustBoosted = true;
 			}
 			//Use a velocity controller when close to target
 			else
@@ -405,6 +406,12 @@ task usercontrol()
 
 				//Bound the output to [0, inf) to prevent the launcher from running backwards
 				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+
+				if (launcherJustBoosted)
+				{
+					launcherJustBoosted = false;
+					launcher_UseBypass = true;
+				}
 			}
 
 			//Rev the launcher right after firing a ball
@@ -438,7 +445,17 @@ task usercontrol()
 
 			//Set motors to low slew rate to minimize torque on launcher
 			setAllLauncherMotorsSlewRate(0.7);
-			setAllLauncherMotors(-launcherCurrentPower);
+
+			//Bypass slew rate if launcher just came out of
+			if (launcher_UseBypass)
+			{
+				launcher_UseBypass = false;
+				setAllLauncherMotors_Bypass(-launcherCurrentPower);
+			}
+			else
+			{
+				setAllLauncherMotors(-launcherCurrentPower);
+			}
 		}
 		//If the launcher should not run
 		else
