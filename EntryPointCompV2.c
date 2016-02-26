@@ -76,7 +76,7 @@ void pre_auton()
 	bStopTasksBetweenModes = true;
 
 	//Initialize launcher TBH controller
-	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.01, 75);
+	vel_TBH_InitController(&launcherTBH, leftDriveBottomBack, 0.25, 75);
 
 	//Iniialize all sensors
 	initializeSensors();
@@ -139,12 +139,14 @@ task usercontrol()
 	const int drivetrainSlewRate = 50;
 
 	//Intake variables
-	const int intakeTimeoutMs = 2000, intakeMinimumError = 2;
+	const int intakeMinimumError = 3;
 	bool intake_prevStateIn = false;
 
 	//Launcher variables
-	const int boostTime = (-185.29 * nAvgBatteryLevel) + 1694.29;
-	bool launcherOn = true, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
+	const int boostTime = (-375 * (nAvgBatteryLevel / 1000.0)) + 3500;
+	const int launcher_FullCourt = 90, launcher_FullCourt_Approx = 79, launcher_MidCourt = 80, launcher_MidCourt_Approx = 63;
+	bool launcherOn = false, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
+	bool launcher127Time = false;
 	int launcherTargetRPM = 85, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
@@ -161,6 +163,8 @@ task usercontrol()
 
 	//timer_Initialize(&t);
 	//while (timer_GetDTFromStart(t) <= 8000)
+	writeDebugStreamLine("Battery Voltage: %1.2f\n", nAvgBatteryLevel / 1000.0);
+	writeDebugStreamLine("Target Velocity, Filtered Velocity, Unfiltered Velocity, Motor Power, Error");
 	while (true)
 	{
 		//Update LCD every 100 ms
@@ -179,9 +183,9 @@ task usercontrol()
 			displayLCDCenteredString(1, line2String);
 		}
 
-		writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
-					launcherCurrentPower,
-					vel_TBH_GetError(&launcherTBH));
+		//writeDebugStreamLine("%d,%d,%d,%d,%d", vel_TBH_GetTargetVelocity(&launcherTBH), vel_TBH_GetVelocity(&launcherTBH), getMotorVelocity(leftDriveBottomBack),
+		//			launcherCurrentPower,
+		//			vel_TBH_GetError(&launcherTBH));
 
 		/* ------------ DRIVETRAIN ------------ */
 
@@ -256,6 +260,8 @@ task usercontrol()
 		//Inside intake should turn inwards
 		if (vexRT[JOY_TRIG_LD])
 		{
+			//setInsideIntakeMotors(127);
+
 			//If launcher is running
 			if (launcherOn)
 			{
@@ -417,15 +423,21 @@ task usercontrol()
 			//Rev the launcher right after firing a ball
 			if (SensorValue[intakeLimit] == 0 && limitSwitchLast)
 			{
-				timer_PlaceHardMarker(&launcherTimer);
+				if (!launcher127Time)
+				{
+					timer_PlaceMarker(&launcherTimer);
+				}
+
+				launcher127Time = true;
 			}
 
 			//Remember limit switch
-			limitSwitchLast = SensorValue[intakeLimit] == 1;
+			limitSwitchLast = (SensorValue[intakeLimit] == 1);
 
 			//Rev launcher
-			if (timer_GetDTFromHardMarker(&launcherTimer) <= boostTime)
+			if (timer_GetDTFromMarker(&launcherTimer) <= 320)
 			{
+				launcher127Time = false;
 				//If target is high
 				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
 				{
@@ -437,21 +449,17 @@ task usercontrol()
 					launcherCurrentPower = 100;
 				}
 			}
-			//Timer expired
-			else
-			{
-				timer_ClearHardMarker(&launcherTimer);
-			}
 
 			//Set motors to low slew rate to minimize torque on launcher
-			setAllLauncherMotorsSlewRate(0.7);
+			setAllLauncherMotorsSlewRate(0.8);
 
-			//Bypass slew rate if launcher just came out of
+			//Bypass slew rate if launcher just came out of high error boost
 			if (launcher_UseBypass)
 			{
 				launcher_UseBypass = false;
 				setAllLauncherMotors_Bypass(-launcherCurrentPower);
 			}
+			//Otherwise, set motors like normal
 			else
 			{
 				setAllLauncherMotors(-launcherCurrentPower);
@@ -468,10 +476,8 @@ task usercontrol()
 		//Full field shot
 		if (vexRT[JOY_BTN_RL])
 		{
-			launcherTargetRPM = 85;
-			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 77);
-
-			launcherPOWER = 90;
+			launcherTargetRPM = launcher_FullCourt;
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcher_FullCourt_Approx);
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RL]);
@@ -480,10 +486,8 @@ task usercontrol()
 		//Half field shot
 		if (vexRT[JOY_BTN_RR])
 		{
-			launcherTargetRPM = 80;
-			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, 67);
-
-			launcherPOWER = 70;
+			launcherTargetRPM = launcher_MidCourt;
+			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcher_MidCourt_Approx);
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RR]);
