@@ -7,13 +7,13 @@
 void programmingSkills()
 {
 	//Driver loads
-	auton_maintainLauncher_target = 76;
-	startTask(maintainLauncherForAuton);
-	setIntakeMotors(127);
-	wait1Msec(60000);
+	//auton_maintainLauncher_target = 76;
+	//startTask(maintainLauncherForAuton);
+	//setIntakeMotors(127);
+	//wait1Msec(60000);
 
 	//Turn right and point at the red tile
-	//turnGyro(80, 20);
+	turnGyro(100, 90);
 
 	//Drive onto the red tile
 	//driveQuad(127, 3000);

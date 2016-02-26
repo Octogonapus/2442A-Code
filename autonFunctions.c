@@ -724,36 +724,11 @@ byte turnGyro(const int power, const float deg)
 
 	startTime = time1[T1];
 
-	//80% power for next 20% of ticks
-	while (abs(SensorValue[gyro]) < abs(ticks) * 0.8)
-	{
-		setLeftDriveMotorsRaw(power * 0.8);   //Set the left side to its power
-		setRightDriveMotorsRaw(-power * 0.8); //Set the right side to its power
-
-		//Exit if taking too long
-		if (time1[T1] - startTime > timeout)
-		{
-			setAllDriveMotorsRaw(0);
-			return 1;
-		}
-
-		//Exit if collision has happened
-		if (collisionHappened)
-		{
-			setAllDriveMotorsRaw(0);
-			f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
-			f_type = F_TYPE_TURN;
-			return 1;
-		}
-	}
-
-	startTime = time1[T1];
-
-	//40% power for last 20% of ticks
+	//30% power for last 40% of ticks
 	while (abs(SensorValue[gyro]) < abs(ticks))
 	{
-		setLeftDriveMotorsRaw(power * 0.4);   //Set the left side to its power
-		setRightDriveMotorsRaw(-power * 0.4); //Set the right side to its power
+		setLeftDriveMotorsRaw(power * 0.3);   //Set the left side to its power
+		setRightDriveMotorsRaw(-power * 0.3); //Set the right side to its power
 
 		//Exit if taking too long
 		if (time1[T1] - startTime > timeout)
@@ -773,7 +748,7 @@ byte turnGyro(const int power, const float deg)
 	}
 
 	turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
-	setAllDriveMotorsRaw(0);            //Stop
+	setAllDriveMotorsRaw(0);       //Stop
 
 	return 0;
 }
