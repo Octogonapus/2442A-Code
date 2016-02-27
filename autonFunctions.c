@@ -260,6 +260,9 @@ void shiftGear(int gear = -1010)
 /***************************************************************************/
 byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 {
+	//Shift into drive gear
+	shift(0);
+	
 	int startingTime = time1[T1];             //Record function start
 
 	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
@@ -276,7 +279,43 @@ byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 			return 1;
 		}
 	}
+
 	setAllDriveMotorsRaw(0);                  //Stop
+
+	return 0;
+}
+
+/***************************************************************************/
+/*                                                                         */
+/* Subroutine - Drives for time in milliseconds while intaking             */
+/*                                                                         */
+/***************************************************************************/
+byte driveAndIntakeTime(const int leftPower, const int rightPower, const int timeMs)
+{
+	//Shift into drive gear
+	shift(0);
+	
+	int startingTime = time1[T1];             //Record function start
+
+	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
+	setRightDriveMotorsRaw(rightPower);       //Set right side to its power
+
+	setAllIntakeMotors(127);                  //Start intake
+
+	while (startingTime + timeMs > time1[T1]) //Wait for timeMs
+	{
+		//Exit if collision has happened
+		if (collisionHappened)
+		{
+			setAllDriveMotorsRaw(0);
+			f_distanceLeft = time1[T1] - (startingTime + timeMs);
+			f_type = F_TYPE_DRIVE;
+			return 1;
+		}
+	}
+
+	setAllDriveMotorsRaw(0);                  //Stop
+	setAllIntakeMotors(0);                    //Stop intake
 
 	return 0;
 }
@@ -290,6 +329,9 @@ byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 /***************************************************************************/
 byte driveQuad(const int power, const int ticks)
 {
+	//Shift into drive gear
+	shift(0);
+
 	//Clear encoders
 	SensorValue[leftDriveQuad] = 0;
 	SensorValue[rightDriveQuad] = 0;
@@ -380,6 +422,9 @@ byte driveQuad(const int power, const int ticks)
 /***************************************************************************/
 byte alignWithLine(const int power, const int alignPower, const int lineCutoff = 500)
 {
+	//Shift into drive gear
+	shift(0);
+	
 	bool keepRunning = true; //Keep driving to align the robot
 
 	//Clear encoders
@@ -487,6 +532,9 @@ byte alignWithLine(const int power, const int alignPower, const int lineCutoff =
 /***************************************************************************/
 byte driveIME(const int power, const int ticks)
 {
+	//Shift into drive gear
+	shift(0);
+	
 	nMotorEncoder[leftDriveFront] = 0;                          //Clear left IME
 	nMotorEncoder[rightDriveFront] = 0;                         //Clear right IME
 
@@ -574,6 +622,9 @@ byte turnTime(const int power, const int timeMs)
 /***************************************************************************/
 byte turnQuad(const int power, const int ticks)
 {
+	//Shift into drive gear
+	shift(0);
+	
 	SensorValue[leftDriveQuad] = 0;  //Clear left encoder
 	SensorValue[rightDriveQuad] = 0; //Clear right encoder
 
@@ -633,6 +684,9 @@ byte turnQuad(const int power, const int ticks)
 /***************************************************************************/
 byte turnIME(const int power, const int ticks)
 {
+	//Shift into drive gear
+	shift(0);
+	
 	nMotorEncoder[leftDriveFront] = 0;  //Clear left IME
 	nMotorEncoder[rightDriveFront] = 0; //Clear right IME
 
@@ -692,6 +746,9 @@ byte turnIME(const int power, const int ticks)
 /***************************************************************************/
 byte turnGyro(const int power, const float deg)
 {
+	//Shift into drive gear
+	shift(0);
+	
 	SensorValue[gyro] = 0;              //Clear the gyro
 
 	int ticks = (int)(deg * 10);        //Scale degrees down to gyro ticks
@@ -748,7 +805,7 @@ byte turnGyro(const int power, const float deg)
 	}
 
 	turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
-	setAllDriveMotorsRaw(0);       //Stop
+	setAllDriveMotorsRaw(0);            //Stop
 
 	return 0;
 }
@@ -758,12 +815,12 @@ byte turnGyro(const int power, const float deg)
 int auton_maintainLauncher_target = 90;
 task maintainLauncherForAuton()
 {
+	//Shift into launcher gear
+	shift(1);
+	
 	startTask(motorSlewRateTask);
 
 	int launcherCurrentPower = 0, auton_maintainLauncher_target_last = 0;
-
-	//Make sure the transmission is in launcher gear
-	shiftGear(0);
 
 	while (true)
 	{
@@ -778,7 +835,7 @@ task maintainLauncherForAuton()
 		auton_maintainLauncher_target_last = auton_maintainLauncher_target;
 
 		//Step the TBH controller and get the output
-		if (launcherTBH.currentVelocity <= auton_maintainLauncher_target - 20)
+		if (vel_TBH_GetVelocity(&launcherTBH) <= auton_maintainLauncher_target - 10)
 		{
 			vel_TBH_StepVelocity(&launcherTBH);
 			launcherCurrentPower = 127;
@@ -792,7 +849,7 @@ task maintainLauncherForAuton()
 		launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 
 		//Set motors to low slew rate to minimize torque on launcher
-		setAllDriveMotorsSlewRate(0.7);
+		setAllDriveMotorsSlewRate(0.8);
 		setAllDriveMotors(-launcherCurrentPower);
 
 		wait1Msec(25);
@@ -801,16 +858,17 @@ task maintainLauncherForAuton()
 
 void launchFourBalls(int target)
 {
-	const int intakeMinimumError = 2;
+	const int intakeMinimumError = 3;
 	int ballCount = 0, intakeLimit_last = 0;
 
 	auton_maintainLauncher_target = target;
 	startTask(maintainLauncherForAuton);
 
-	wait1Msec(1000);
+	//Wait for initial boost to finish
+	wait1Msec(2750);
 
 	//Run until 4 balls have been launched
-	while (ballCount < 5)
+	while (ballCount < 4)
 	{
 		//Make sure a ball is ready to fire
 		if (SensorValue[intakeLimit] != 1)

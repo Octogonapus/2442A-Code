@@ -147,7 +147,7 @@ task usercontrol()
 	const int launcher_FullCourt = 90, launcher_FullCourt_Approx = 79, launcher_MidCourt = 80, launcher_MidCourt_Approx = 63;
 	bool launcherOn = false, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
 	bool launcher127Time = false;
-	int launcherTargetRPM = 85, launcherTargetRPM_last = 0;
+	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
 	startTask(motorSlewRateTask);
@@ -435,9 +435,10 @@ task usercontrol()
 			limitSwitchLast = (SensorValue[intakeLimit] == 1);
 
 			//Rev launcher
-			if (timer_GetDTFromMarker(&launcherTimer) <= 320)
+			if (timer_GetDTFromMarker(&launcherTimer) <= 300)
 			{
 				launcher127Time = false;
+
 				//If target is high
 				if (vel_TBH_GetOpenLoopApprox(&launcherTBH) >= 72)
 				{
