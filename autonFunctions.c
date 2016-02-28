@@ -749,65 +749,118 @@ byte turnGyro(const int power, const float deg)
 	//Shift into drive gear
 	shift(0);
 	
-	SensorValue[gyro] = 0;              //Clear the gyro
+	//Clear the gyro
+	SensorValue[gyro] = 0;
 
-	int ticks = (int)(deg * 10);        //Scale degrees down to gyro ticks
+	//Scale degrees down to gyro ticks
+	int ticks = (int)(deg * 10);
 
-	const int timeout = 3000;           //Loop timeout
-	int startTime = time1[T1];          //Loop timeout counter
+	//Loop timeout
+	const int timeout = 3000;
 
-	//Full power for 60% of ticks
-	while (abs(SensorValue[gyro]) < abs(ticks) * 0.6)
+	//Timer for timeout and stabalize time
+	timer t;
+	timer_Initialize(&t);
+
+	//Position PID controller for turning
+	pos_PID pid;
+	pos_PID_InitController(&pid, gyro, 0.25, 0, 0);
+
+	//Set controller's target position
+	pos_PID_SetTargetPosition(&pid, ticks);
+
+	//Marker for timeout
+	timer_PlaceMarker(&t);
+
+	//Turn to target
+	while (abs(pos_PID_GetError(&pid)) > 0)
 	{
-		setLeftDriveMotorsRaw(power);   //Set the left side to its power
-		setRightDriveMotorsRaw(-power); //Set the right side to its power
+		//Step controller
+		pos_PID_StepController(&pid);
+
+		//Set drive to controller's output
+		setLeftDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(-pos_PID_GetOutput(&pid));
 
 		//Exit if taking too long
-		if (time1[T1] - startTime > timeout)
+		if (timer_GetDTFromMarker(&t) > timeout)
 		{
 			setAllDriveMotorsRaw(0);
-			return 1;
-		}
-
-		//Exit if collision has happened
-		if (collisionHappened)
-		{
-			setAllDriveMotorsRaw(0);
-			f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
-			f_type = F_TYPE_TURN;
 			return 1;
 		}
 	}
 
-	startTime = time1[T1];
+	//Let controller stabalize for 500ms
+	timer_PlaceMarker(&t);
 
-	//30% power for last 40% of ticks
-	while (abs(SensorValue[gyro]) < abs(ticks))
+	//Run for 500ms
+	while (timer_GetDTFromMarker(&t) < 500)
 	{
-		setLeftDriveMotorsRaw(power * 0.3);   //Set the left side to its power
-		setRightDriveMotorsRaw(-power * 0.3); //Set the right side to its power
+		//Step controller
+		pos_PID_StepController(&pid);
 
-		//Exit if taking too long
-		if (time1[T1] - startTime > timeout)
-		{
-			setAllDriveMotorsRaw(0);
-			return 1;
-		}
-
-		//Exit if collision has happened
-		if (collisionHappened)
-		{
-			setAllDriveMotorsRaw(0);
-			f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
-			f_type = F_TYPE_TURN;
-			return 1;
-		}
+		//Set drive to controller's output
+		setLeftDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(-pos_PID_GetOutput(&pid));
 	}
 
-	turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
-	setAllDriveMotorsRaw(0);            //Stop
+	//Stop drive motors
+	setAllDriveMotorsRaw(0);
 
 	return 0;
+
+	// //Full power for 60% of ticks
+	// while (abs(SensorValue[gyro]) < abs(ticks) * 0.6)
+	// {
+	// 	setLeftDriveMotorsRaw(power);   //Set the left side to its power
+	// 	setRightDriveMotorsRaw(-power); //Set the right side to its power
+
+	// 	//Exit if taking too long
+	// 	if (time1[T1] - startTime > timeout)
+	// 	{
+	// 		setAllDriveMotorsRaw(0);
+	// 		return 1;
+	// 	}
+
+	// 	//Exit if collision has happened
+	// 	if (collisionHappened)
+	// 	{
+	// 		setAllDriveMotorsRaw(0);
+	// 		f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
+	// 		f_type = F_TYPE_TURN;
+	// 		return 1;
+	// 	}
+	// }
+
+	// startTime = time1[T1];
+
+	// //30% power for last 40% of ticks
+	// while (abs(SensorValue[gyro]) < abs(ticks))
+	// {
+	// 	setLeftDriveMotorsRaw(power * 0.3);   //Set the left side to its power
+	// 	setRightDriveMotorsRaw(-power * 0.3); //Set the right side to its power
+
+	// 	//Exit if taking too long
+	// 	if (time1[T1] - startTime > timeout)
+	// 	{
+	// 		setAllDriveMotorsRaw(0);
+	// 		return 1;
+	// 	}
+
+	// 	//Exit if collision has happened
+	// 	if (collisionHappened)
+	// 	{
+	// 		setAllDriveMotorsRaw(0);
+	// 		f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
+	// 		f_type = F_TYPE_TURN;
+	// 		return 1;
+	// 	}
+	// }
+
+	// turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
+	// setAllDriveMotorsRaw(0);            //Stop
+
+	// return 0;
 }
 
 #endif //USING_GYRO
