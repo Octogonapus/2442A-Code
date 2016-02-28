@@ -38,7 +38,7 @@
 
 //Setup LCD
 #define LCD_SAFETY_REQ_COMP_SWITCH
-#define MENU_NUM 23
+#define MENU_NUM 6
 #define USING_QUADS
 #define USING_GYRO
 
