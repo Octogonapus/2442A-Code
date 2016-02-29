@@ -764,7 +764,7 @@ byte turnGyro(const int power, const float deg)
 
 	//Position PID controller for turning
 	pos_PID pid;
-	pos_PID_InitController(&pid, gyro, 0.2, 0, 0.1);
+	pos_PID_InitController(&pid, gyro, 0.5, 0, 0.04);
 
 	//Set controller's target position
 	pos_PID_SetTargetPosition(&pid, ticks);
@@ -772,15 +772,20 @@ byte turnGyro(const int power, const float deg)
 	//Marker for timeout
 	timer_PlaceMarker(&t);
 
+	writeDebugStreamLine("Error, Output");
+
 	//Turn to target
+	pos_PID_StepController(&pid);
 	while (abs(pos_PID_GetError(&pid)) > 0)
 	{
 		//Step controller
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(-pos_PID_GetOutput(&pid));
+		setLeftDriveMotorsRaw(-pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+
+		writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 
 		//Exit if taking too long
 		if (timer_GetDTFromMarker(&t) > timeout)
@@ -788,6 +793,8 @@ byte turnGyro(const int power, const float deg)
 			setAllDriveMotorsRaw(0);
 			return 1;
 		}
+
+		wait1Msec(10);
 	}
 
 	//Let controller stabalize for 500ms
@@ -800,8 +807,10 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(-pos_PID_GetOutput(&pid));
+		setLeftDriveMotorsRaw(-pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+
+		writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 	}
 
 	//Stop drive motors

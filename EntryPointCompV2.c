@@ -166,8 +166,8 @@ task usercontrol()
 
 	//timer_Initialize(&t);
 	//while (timer_GetDTFromStart(t) <= 8000)
-	writeDebugStreamLine("Battery Voltage: %1.2f\n", nAvgBatteryLevel / 1000.0);
-	writeDebugStreamLine("Target Velocity, Filtered Velocity, Unfiltered Velocity, Motor Power, Error");
+	//writeDebugStreamLine("Battery Voltage: %1.2f\n", nAvgBatteryLevel / 1000.0);
+	//writeDebugStreamLine("Target Velocity, Filtered Velocity, Unfiltered Velocity, Motor Power, Error");
 	while (true)
 	{
 		//Update LCD every 100 ms
