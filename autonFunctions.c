@@ -772,7 +772,7 @@ byte turnGyro(const int power, const float deg)
 	//Marker for timeout
 	timer_PlaceMarker(&t);
 
-	writeDebugStreamLine("Error, Output");
+	//writeDebugStreamLine("Error, Output");
 
 	//Turn to target
 	pos_PID_StepController(&pid);
@@ -785,7 +785,7 @@ byte turnGyro(const int power, const float deg)
 		setLeftDriveMotorsRaw(-pos_PID_GetOutput(&pid));
 		setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
 
-		writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
+		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 
 		//Exit if taking too long
 		if (timer_GetDTFromMarker(&t) > timeout)
@@ -810,7 +810,7 @@ byte turnGyro(const int power, const float deg)
 		setLeftDriveMotorsRaw(-pos_PID_GetOutput(&pid));
 		setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
 
-		writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
+		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 	}
 
 	//Stop drive motors

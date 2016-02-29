@@ -142,15 +142,15 @@ task usercontrol()
 	const int drivetrainSlewRate = 50;
 
 	//Intake variables
-	const int intakeMinimumError = 3;
+	const int intakeMinimumError = 2;
 	bool intake_prevStateIn = false;
 
 	//Launcher variables
-	const int boostTime = (-375 * (nAvgBatteryLevel / 1000.0)) + 3500;
-	const int launcher_FullCourt = 90, launcher_FullCourt_Approx = 79, launcher_MidCourt = 80, launcher_MidCourt_Approx = 63;
+	const int boostTime = 100; //(-375 * (nAvgBatteryLevel / 1000.0)) + 3500;
+	const int launcher_FullCourt = 87, launcher_FullCourt_Approx = 79, launcher_MidCourt = 75, launcher_MidCourt_Approx = 62;
 	bool launcherOn = false, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
-	bool launcher127Time = false;
-	int launcherTargetRPM = 90, launcherTargetRPM_last = 0;
+	bool launcher127Time = false, launcher127TimeMarker = false;
+	int launcherTargetRPM = 87, launcherTargetRPM_last = 0;
 	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
 
 	startTask(motorSlewRateTask);
@@ -182,7 +182,7 @@ task usercontrol()
 			//sprintf(line2String, "%1.2f", SensorValue[powerExpander] / ANALOG_IN_TO_MV);
 			//sprintf(line2String, "CP:%d", launcherCurrentPower);
 			//sprintf(line2String, "LH: %d, RH: %d", getMotorVelocity(leftDriveBottomBack) * 25, getMotorVelocity(rightDriveBottomBack) * 25);
-			sprintf(line2String, "Cur Pow:%d", launcherCurrentPower);
+			sprintf(line2String, "Cur Pow:%d", launcherPOWER);
 			displayLCDCenteredString(1, line2String);
 		}
 
@@ -269,13 +269,14 @@ task usercontrol()
 			if (launcherOn)
 			{
 				//If ball is ready
-				if (SensorValue[intakeLimit] == 1)
+				if (false && SensorValue[intakeLimit] == 1)
 				{
 					//Place timeout mark
 					timer_PlaceHardMarker(&intakeTimer);
 
 					//If velocity controller has low error
-					if (abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError)
+					//if (abs(vel_TBH_GetError(&launcherTBH)) < intakeMinimumError)
+					if (vel_TBH_GetError(&launcherTBH) < 1 && vel_TBH_GetError(&launcherTBH) > -1)
 					{
 						launcherBypass = true;
 
@@ -410,16 +411,24 @@ task usercontrol()
 			//Use a velocity controller when close to target
 			else
 			{
-				//Step the TBH controller and get the output
-				launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
-
-				//Bound the output to [0, inf) to prevent the launcher from running backwards
-				launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
-
-				if (launcherJustBoosted)
+				if (!launcher127TimeMarker)
 				{
-					launcherJustBoosted = false;
-					launcher_UseBypass = true;
+					//Step the TBH controller and get the output
+					launcherCurrentPower = vel_TBH_StepController(&launcherTBH);
+
+					//Bound the output to [0, inf) to prevent the launcher from running backwards
+					launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
+
+					if (launcherJustBoosted)
+					{
+						launcherJustBoosted = false;
+						launcher_UseBypass = true;
+					}
+				}
+				else
+				{
+					vel_TBH_StepVelocity(&launcherTBH);
+					launcherTBH.error = 0;
 				}
 			}
 
@@ -438,8 +447,9 @@ task usercontrol()
 			limitSwitchLast = (SensorValue[intakeLimit] == 1);
 
 			//Rev launcher
-			if (timer_GetDTFromMarker(&launcherTimer) <= 300)
+			if (timer_GetDTFromMarker(&launcherTimer) <= boostTime)
 			{
+				launcher127TimeMarker = true;
 				launcher127Time = false;
 
 				//If target is high
@@ -453,21 +463,26 @@ task usercontrol()
 					launcherCurrentPower = 100;
 				}
 			}
+			else
+			{
+				launcher127TimeMarker = false;
+			}
 
 			//Set motors to low slew rate to minimize torque on launcher
 			setAllLauncherMotorsSlewRate(0.8);
 
-			//Bypass slew rate if launcher just came out of high error boost
-			if (launcher_UseBypass)
-			{
-				launcher_UseBypass = false;
-				setAllLauncherMotors_Bypass(-launcherCurrentPower);
-			}
-			//Otherwise, set motors like normal
-			else
-			{
-				setAllLauncherMotors(-launcherCurrentPower);
-			}
+			////Bypass slew rate if launcher just came out of high error boost
+			//if (launcher_UseBypass)
+			//{
+			//	launcher_UseBypass = false;
+			//	setAllLauncherMotors_Bypass(-launcherCurrentPower);
+			//}
+			////Otherwise, set motors like normal
+			//else
+			//{
+			//	setAllLauncherMotors(-launcherCurrentPower);
+			//}
+			setAllLauncherMotors(-launcherPOWER);
 		}
 		//If the launcher should not run
 		else
@@ -483,6 +498,8 @@ task usercontrol()
 			launcherTargetRPM = launcher_FullCourt;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcher_FullCourt_Approx);
 
+			launcherPOWER = 80;
+
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RL]);
 		}
@@ -492,6 +509,8 @@ task usercontrol()
 		{
 			launcherTargetRPM = launcher_MidCourt;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcher_MidCourt_Approx);
+
+			launcherPOWER = 70;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RR]);
