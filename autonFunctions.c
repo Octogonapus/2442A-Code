@@ -764,7 +764,7 @@ byte turnGyro(const int power, const float deg)
 
 	//Position PID controller for turning
 	pos_PID pid;
-	pos_PID_InitController(&pid, gyro, 0.25, 0, 0);
+	pos_PID_InitController(&pid, gyro, 0.2, 0, 0.1);
 
 	//Set controller's target position
 	pos_PID_SetTargetPosition(&pid, ticks);
