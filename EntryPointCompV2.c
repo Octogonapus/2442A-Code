@@ -62,6 +62,9 @@ vel_TBH launcherTBH;
 //Programming skills routine
 #include "programmingSkills.c"
 
+//Include auton functions for convenience
+#include "autonFunctions.c"
+
 //Menus
 //Level 1 - General Info
 menu *programmingSkillsMenu;

@@ -261,8 +261,8 @@ void shiftGear(int gear = -1010)
 byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 {
 	//Shift into drive gear
-	shift(0);
-	
+	shiftGear(0);
+
 	int startingTime = time1[T1];             //Record function start
 
 	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
@@ -293,8 +293,8 @@ byte driveTime(const int leftPower, const int rightPower, const int timeMs)
 byte driveAndIntakeTime(const int leftPower, const int rightPower, const int timeMs)
 {
 	//Shift into drive gear
-	shift(0);
-	
+	shiftGear(0);
+
 	int startingTime = time1[T1];             //Record function start
 
 	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
@@ -330,7 +330,7 @@ byte driveAndIntakeTime(const int leftPower, const int rightPower, const int tim
 byte driveQuad(const int power, const int ticks)
 {
 	//Shift into drive gear
-	shift(0);
+	shiftGear(0);
 
 	//Clear encoders
 	SensorValue[leftDriveQuad] = 0;
@@ -423,8 +423,8 @@ byte driveQuad(const int power, const int ticks)
 byte alignWithLine(const int power, const int alignPower, const int lineCutoff = 500)
 {
 	//Shift into drive gear
-	shift(0);
-	
+	shiftGear(0);
+
 	bool keepRunning = true; //Keep driving to align the robot
 
 	//Clear encoders
@@ -534,7 +534,7 @@ byte driveIME(const int power, const int ticks)
 {
 	//Shift into drive gear
 	shift(0);
-	
+
 	nMotorEncoder[leftDriveFront] = 0;                          //Clear left IME
 	nMotorEncoder[rightDriveFront] = 0;                         //Clear right IME
 
@@ -623,8 +623,8 @@ byte turnTime(const int power, const int timeMs)
 byte turnQuad(const int power, const int ticks)
 {
 	//Shift into drive gear
-	shift(0);
-	
+	shiftGear(0);
+
 	SensorValue[leftDriveQuad] = 0;  //Clear left encoder
 	SensorValue[rightDriveQuad] = 0; //Clear right encoder
 
@@ -686,7 +686,7 @@ byte turnIME(const int power, const int ticks)
 {
 	//Shift into drive gear
 	shift(0);
-	
+
 	nMotorEncoder[leftDriveFront] = 0;  //Clear left IME
 	nMotorEncoder[rightDriveFront] = 0; //Clear right IME
 
@@ -747,8 +747,8 @@ byte turnIME(const int power, const int ticks)
 byte turnGyro(const int power, const float deg)
 {
 	//Shift into drive gear
-	shift(0);
-	
+	shiftGear(0);
+
 	//Clear the gyro
 	SensorValue[gyro] = 0;
 
@@ -869,8 +869,8 @@ int auton_maintainLauncher_target = 90;
 task maintainLauncherForAuton()
 {
 	//Shift into launcher gear
-	shift(1);
-	
+	shiftGear(1);
+
 	startTask(motorSlewRateTask);
 
 	int launcherCurrentPower = 0, auton_maintainLauncher_target_last = 0;
