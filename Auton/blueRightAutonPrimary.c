@@ -5,23 +5,31 @@
 
 void blueRightAutonPrimary()
 {
-	//Launch four preloads
-	launchFourBalls(95);
+	launchFourBalls(85);
 
-	////Turn and face the stack offset from the wall
-	//turnGyro(60, 35);
+	//Drive forward out from starting tile
+	driveQuad(110, 300);
 
-	////Drive forward and pick up the stack
-	//setIntakeMotors(127);
-	//driveQuad(127, 650);
-	//driveQuad(40, 350);
-	//setIntakeMotors(0);
+	//Turn left to be parallel with the field wall
+	turnGyro(-100, -46);
 
-	////Turn slightly left to avoid hitting the wall at the starting tile
-	//turnGyro(60, 1);
+	//Drive forward to be next to stack against field wall
+	driveQuad(110, 600);
 
-	////Drive back to the starting tile
-	//driveQuad(-127, 970);
+	//Turn right to point at the stack against the field wall
+	turnGyro(-100, -96);
+
+	//Intake the stack
+	driveQuad(110, 150);
+	driveAndIntakeTime(30, 30, 2000);
+	wait1Msec(500);
+	driveAndIntakeTime(30, 30, 1000);
+
+	//Drive back from wall
+	driveQuad(-110, 200);
+
+	//Turn to face net
+	turnGyro(100, 175);
 }
 
 #endif

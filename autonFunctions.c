@@ -771,6 +771,12 @@ byte turnGyro(const int power, const float deg)
 	//Turn direction
 	const int dir = sgn(power);
 
+	//Check ticks for direction match with dir
+	if (sgn(ticks) != dir)
+	{
+		ticks *= -1;
+	}
+
 	//Timer for timeout and stabalize time
 	timer t;
 	timer_Initialize(&t);
@@ -795,8 +801,8 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
+		setLeftDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
 
 		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 
@@ -827,8 +833,8 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
+		setLeftDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
 
 		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 	}
@@ -940,30 +946,19 @@ task maintainLauncherForAuton()
 
 void launchFourBalls(int target)
 {
-	const int intakeMinimumError = 3;
 	int ballCount = 0, intakeLimit_last = 0;
 
 	auton_maintainLauncher_target = target;
 	startTask(maintainLauncherForAuton);
 
 	//Wait for initial boost to finish
-	wait1Msec(2750);
+	wait1Msec(3500);
 
 	//Run until 4 balls have been launched
 	while (ballCount < 4)
 	{
-		//Make sure a ball is ready to fire
-		if (SensorValue[intakeLimit] != 1)
-		{
-			setIntakeMotorsRaw(127);
-		}
-		else
-		{
-			setIntakeMotorsRaw(0);
-		}
-
 		//If launcher velocity is in acceptable bounds
-		if (vel_TBH_GetError(&launcherTBH) <= intakeMinimumError)
+		if (vel_TBH_GetError(&launcherTBH) <= 1 && vel_TBH_GetError(&launcherTBH) >= -2)
 		{
 			//Run intake to launch a ball
 			setIntakeMotorsRaw(127);
@@ -977,8 +972,12 @@ void launchFourBalls(int target)
 			//Remember current intake limit switch position
 			intakeLimit_last = SensorValue[intakeLimit];
 		}
+		else
+		{
+			setIntakeMotorsRaw(0);
+		}
 
-		wait1Msec(5);
+		wait1Msec(25);
 	}
 
 	setIntakeMotorsRaw(0);
