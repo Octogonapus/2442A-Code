@@ -11,17 +11,17 @@ void blueRightAutonPrimary()
 	driveQuad(110, 300);
 
 	//Turn left to be parallel with the field wall
-	turnGyro(-100, -46);
+	turnGyro(-46);
 
 	//Drive forward to be next to stack against field wall
-	driveQuad(110, 600);
+	driveQuad(110, 650);
 
 	//Turn right to point at the stack against the field wall
-	turnGyro(-100, -96);
+	turnGyro(-86);
 
 	//Intake the stack
 	driveQuad(110, 150);
-	driveAndIntakeTime(30, 30, 2000);
+	driveAndIntakeTime(30, 30, 2500);
 	wait1Msec(500);
 	driveAndIntakeTime(30, 30, 1000);
 
@@ -29,7 +29,7 @@ void blueRightAutonPrimary()
 	driveQuad(-110, 200);
 
 	//Turn to face net
-	turnGyro(100, 175);
+	turnGyro(175);
 }
 
 #endif

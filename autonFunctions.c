@@ -754,7 +754,7 @@ byte turnIME(const int power, const int ticks)
 /* Subroutine - Turns for distance in degrees                              */
 /*                                                                         */
 /***************************************************************************/
-byte turnGyro(const int power, const float deg)
+byte turnGyro(const float deg)
 {
 	//Shift into drive gear
 	shiftGear(0);
@@ -769,13 +769,7 @@ byte turnGyro(const int power, const float deg)
 	const int timeout = 1000;
 
 	//Turn direction
-	const int dir = sgn(power);
-
-	//Check ticks for direction match with dir
-	if (sgn(ticks) != dir)
-	{
-		ticks *= -1;
-	}
+	const int dir = sign(deg);
 
 	//Timer for timeout and stabalize time
 	timer t;
@@ -801,10 +795,20 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
+		if (dir == -1)
+		{
+			//Turn right
+			setLeftDriveMotorsRaw(-1 * pos_PID_GetOutput(&pid));
+			setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		}
+		else
+		{
+			//Turn left
+			setLeftDriveMotorsRaw(-1 * pos_PID_GetOutput(&pid));
+			setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		}
 
-		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
+		writeDebugStreamLine("%d, %d, %d", dir, pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 
 		//Exit if taking too long
 		if (timer_GetDTFromMarker(&t) > timeout)
@@ -814,10 +818,21 @@ byte turnGyro(const int power, const float deg)
 		}
 
 		//Exit if output is too small to turn the robot
-		if (pos_PID_GetOutput(&pid) <= 5)
+		if (dir == -1)
 		{
-			setAllDriveMotorsRaw(0);
-			return 1;
+			if (pos_PID_GetOutput(&pid) >= -5)
+			{
+				setAllDriveMotorsRaw(0);
+				return 1;
+			}
+		}
+		else
+		{
+			if (pos_PID_GetOutput(&pid) <= 5)
+			{
+				setAllDriveMotorsRaw(0);
+				return 1;
+			}
 		}
 
 		wait1Msec(10);
@@ -833,8 +848,18 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
+		if (dir == -1)
+		{
+			//Turn right
+			setLeftDriveMotorsRaw(pos_PID_GetOutput(&pid));
+			setRightDriveMotorsRaw(-1 * pos_PID_GetOutput(&pid));
+		}
+		else
+		{
+			//Turn left
+			setLeftDriveMotorsRaw(-1 * pos_PID_GetOutput(&pid));
+			setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		}
 
 		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 	}
@@ -843,59 +868,6 @@ byte turnGyro(const int power, const float deg)
 	setAllDriveMotorsRaw(0);
 
 	return 0;
-
-	// //Full power for 60% of ticks
-	// while (abs(SensorValue[gyro]) < abs(ticks) * 0.6)
-	// {
-	// 	setLeftDriveMotorsRaw(power);   //Set the left side to its power
-	// 	setRightDriveMotorsRaw(-power); //Set the right side to its power
-
-	// 	//Exit if taking too long
-	// 	if (time1[T1] - startTime > timeout)
-	// 	{
-	// 		setAllDriveMotorsRaw(0);
-	// 		return 1;
-	// 	}
-
-	// 	//Exit if collision has happened
-	// 	if (collisionHappened)
-	// 	{
-	// 		setAllDriveMotorsRaw(0);
-	// 		f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
-	// 		f_type = F_TYPE_TURN;
-	// 		return 1;
-	// 	}
-	// }
-
-	// startTime = time1[T1];
-
-	// //30% power for last 40% of ticks
-	// while (abs(SensorValue[gyro]) < abs(ticks))
-	// {
-	// 	setLeftDriveMotorsRaw(power * 0.3);   //Set the left side to its power
-	// 	setRightDriveMotorsRaw(-power * 0.3); //Set the right side to its power
-
-	// 	//Exit if taking too long
-	// 	if (time1[T1] - startTime > timeout)
-	// 	{
-	// 		setAllDriveMotorsRaw(0);
-	// 		return 1;
-	// 	}
-
-	// 	//Exit if collision has happened
-	// 	if (collisionHappened)
-	// 	{
-	// 		setAllDriveMotorsRaw(0);
-	// 		f_distanceLeft = (ticks - SensorValue[gyro]) / 10;
-	// 		f_type = F_TYPE_TURN;
-	// 		return 1;
-	// 	}
-	// }
-
-	// turnTime(-1 * (power / 2), 50);     //Brake at -50% power for a short time to eliminate momentum
-	// setAllDriveMotorsRaw(0);            //Stop
-
-	// return 0;
 }
 
 #endif //USING_GYRO
@@ -937,8 +909,8 @@ task maintainLauncherForAuton()
 		launcherCurrentPower = launcherCurrentPower < 0 ? 0 : launcherCurrentPower;
 
 		//Set motors to low slew rate to minimize torque on launcher
-		setAllDriveMotorsSlewRate(0.8);
-		setAllDriveMotors(-launcherCurrentPower);
+		setAllLauncherMotorsSlewRate(0.8);
+		setAllLauncherMotors(-launcherCurrentPower);
 
 		wait1Msec(25);
 	}
@@ -1001,37 +973,37 @@ void correctForCollision()
 		if (f_distanceLeft > 0)
 		{
 			//Turn to face P_g, theta = -atan2(dx, z - dy) - dG
-			turnGyro(100, -10 * radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y)) - (collVec.gyroEnd - collVec.gyroStart));
+			turnGyro(-10 * radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y)) - (collVec.gyroEnd - collVec.gyroStart));
 
 			//Drive to P_g, d = sqrt(dx^2 + dy^2)
 			driveQuad(100, sqrt(pow(collVec.x, 2) + pow(f_distanceLeft - collVec.y, 2)));
 
 			//Turn back to starting angle
-			turnGyro(100, collVec.gyroStart);
+			turnGyro(collVec.gyroStart);
 		}
 		else if (f_distanceLeft < 0)
 		{
 			if (collVec.x > 0)
 			{
 				//Turn to face P_g, theta = PI - atan2(dx, z - dy) - dG
-				turnGyro(100, 10 * (180 - radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y))) - (collVec.gyroEnd - collVec.gyroStart));
+				turnGyro(10 * (180 - radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y))) - (collVec.gyroEnd - collVec.gyroStart));
 
 				//Drive to P_g, d = sqrt(dx^2 + dy^2)
 				driveQuad(100, sqrt(pow(collVec.x, 2) + pow(f_distanceLeft - collVec.y, 2)));
 
 				//Turn back to starting angle
-				turnGyro(100, collVec.gyroStart);
+				turnGyro(collVec.gyroStart);
 			}
 			else if (collVec.x < 0)
 			{
 				//Turn to face P_g, theta = -(PI + atan2(dx, z - dy)) - dG
-				turnGyro(100, -10 * (180 + radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y))) - (collVec.gyroEnd - collVec.gyroStart));
+				turnGyro(-10 * (180 + radiansToDegrees(atan2(collVec.x, f_distanceLeft - collVec.y))) - (collVec.gyroEnd - collVec.gyroStart));
 
 				//Drive to P_g, d = sqrt(dx^2 + dy^2)
 				driveQuad(100, sqrt(pow(collVec.x, 2) + pow(f_distanceLeft - collVec.y, 2)));
 
 				//Turn back to starting angle
-				turnGyro(100, collVec.gyroStart);
+				turnGyro(collVec.gyroStart);
 			}
 		}
 	}
