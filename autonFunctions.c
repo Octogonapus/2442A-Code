@@ -44,7 +44,7 @@
 
 //RAW INTAKE
 #define setOutisdeIntakeMotorsRaw(power) motor[intakeFront] = power
-#define setInsideIntakeMotorsRaw(power) motors[intakeBack] = power
+#define setInsideIntakeMotorsRaw(power) motor[intakeBack] = power
 #define setAllIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
 
 //Deprecated
@@ -300,10 +300,18 @@ byte driveAndIntakeTime(const int leftPower, const int rightPower, const int tim
 	setLeftDriveMotorsRaw(leftPower);         //Set left side to its power
 	setRightDriveMotorsRaw(rightPower);       //Set right side to its power
 
-	setAllIntakeMotors(127);                  //Start intake
-
 	while (startingTime + timeMs > time1[T1]) //Wait for timeMs
 	{
+		//Run intake in
+		setAllIntakeMotorsRaw(127);
+
+		//If limit switch is hit, balls are too far
+		//Stop inside intake
+		if (SensorValue[intakeLimit] == 1)
+		{
+			setInsideIntakeMotorsRaw(0);
+		}
+
 		//Exit if collision has happened
 		if (collisionHappened)
 		{
@@ -315,7 +323,7 @@ byte driveAndIntakeTime(const int leftPower, const int rightPower, const int tim
 	}
 
 	setAllDriveMotorsRaw(0);                  //Stop
-	setAllIntakeMotors(0);                    //Stop intake
+	setAllIntakeMotorsRaw(0);                 //Stop intake
 
 	return 0;
 }
@@ -358,12 +366,12 @@ byte driveQuad(const int power, const int ticks)
 		setLeftDriveMotorsRaw(power);
 		setRightDriveMotorsRaw(power + rMod);
 
-		//Exit if hit a wall
-		if (abs(SensorValue[accelX]) > collisionThreshold)
-		{
-			setAllDriveMotorsRaw(0);
-			return 1;
-		}
+		////Exit if hit a wall
+		//if (abs(SensorValue[accelX]) > collisionThreshold)
+		//{
+		//	setAllDriveMotorsRaw(0);
+		//	return 1;
+		//}
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -390,12 +398,12 @@ byte driveQuad(const int power, const int ticks)
 		setLeftDriveMotorsRaw(power / 3);
 		setRightDriveMotorsRaw((power / 3) + rMod);
 
-		//Exit if hit a wall
-		if (SensorValue[accelX] > collisionThreshold)
-		{
-			setAllDriveMotorsRaw(0);
-			return 1;
-		}
+		////Exit if hit a wall
+		//if (SensorValue[accelX] > collisionThreshold)
+		//{
+		//	setAllDriveMotorsRaw(0);
+		//	return 1;
+		//}
 
 		//Exit if collision has happened
 		if (collisionHappened)
@@ -519,6 +527,8 @@ byte alignWithLine(const int power, const int alignPower, const int lineCutoff =
 			keepRunning = false;
 		}
 	}
+
+	return 0;
 }
 
 #endif //USING_QUADS
@@ -756,7 +766,10 @@ byte turnGyro(const int power, const float deg)
 	int ticks = (int)(deg * 10);
 
 	//Loop timeout
-	const int timeout = 3000;
+	const int timeout = 1000;
+
+	//Turn direction
+	const int dir = sgn(power);
 
 	//Timer for timeout and stabalize time
 	timer t;
@@ -782,13 +795,20 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(-pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		setLeftDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
 
 		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 
 		//Exit if taking too long
 		if (timer_GetDTFromMarker(&t) > timeout)
+		{
+			setAllDriveMotorsRaw(0);
+			return 1;
+		}
+
+		//Exit if output is too small to turn the robot
+		if (pos_PID_GetOutput(&pid) <= 5)
 		{
 			setAllDriveMotorsRaw(0);
 			return 1;
@@ -807,8 +827,8 @@ byte turnGyro(const int power, const float deg)
 		pos_PID_StepController(&pid);
 
 		//Set drive to controller's output
-		setLeftDriveMotorsRaw(-pos_PID_GetOutput(&pid));
-		setRightDriveMotorsRaw(pos_PID_GetOutput(&pid));
+		setLeftDriveMotorsRaw(dir * pos_PID_GetOutput(&pid));
+		setRightDriveMotorsRaw(-1 * dir * pos_PID_GetOutput(&pid));
 
 		//writeDebugStreamLine("%d, %d", pos_PID_GetError(&pid), pos_PID_GetOutput(&pid));
 	}
