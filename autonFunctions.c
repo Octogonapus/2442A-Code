@@ -910,7 +910,7 @@ task maintainLauncherForAuton()
 
 		//Set motors to low slew rate to minimize torque on launcher
 		setAllLauncherMotorsSlewRate(0.8);
-		setAllLauncherMotors(-launcherCurrentPower);
+		setAllLauncherMotors(-82);
 
 		wait1Msec(25);
 	}
