@@ -5,6 +5,7 @@
 
 void blueLeftAutonPrimary()
 {
+	//Launch four preloads
 	launchFourBalls(85);
 
 	//Drive forward out from starting tile
@@ -17,11 +18,11 @@ void blueLeftAutonPrimary()
 	driveQuad(110, 600);
 
 	//Turn right to point at the stack against the field wall
-	turnGyro(96);
+	turnGyro(93);
 
 	//Intake the stack
 	driveQuad(110, 150);
-	driveAndIntakeTime(30, 30, 2500);
+	driveAndIntakeTime(30, 30, 2250);
 	wait1Msec(500);
 	driveAndIntakeTime(30, 30, 1000);
 

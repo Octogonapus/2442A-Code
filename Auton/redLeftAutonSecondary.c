@@ -5,31 +5,31 @@
 
 void redLeftAutonSecondary()
 {
-	//Launch four preloads
-	launchFourBalls(195);
+	launchFourBalls(85);
 
-	//Turn and face the stack offset from the wall
-	turnGyro(-30);
+	//Drive forward out from starting tile
+	driveQuad(110, 300);
 
-	//Drive forward to be on top of the stack offset from the wall
-	driveQuad(127, 1100);
+	//Turn left to be parallel with the field wall
+	turnGyro(46);
 
-	//Turn left and face the stack against the wall
-	turnGyro(-100);
+	//Drive forward to be next to stack against field wall
+	driveQuad(110, 650);
 
-	//Drive forward and intake the stack
-	setIntakeMotors(127);
-	driveTime(40, 40, 3500);
-	setIntakeMotors(0);
+	//Turn right to point at the stack against the field wall
+	turnGyro(86);
 
-	//Drive back from the wall
-	driveQuad(-127, 200);
+	//Intake the stack
+	driveQuad(110, 150);
+	driveAndIntakeTime(30, 30, 2500);
+	wait1Msec(500);
+	driveAndIntakeTime(30, 30, 1000);
 
-	//Turn right and have back face the starting tile
-	turnGyro(120);
+	//Drive back from wall
+	driveQuad(-110, 200);
 
-	//Drive back onto the starting tile
-	driveQuad(-127, 900);
+	//Turn to face net
+	turnGyro(-175);
 }
 
 #endif
