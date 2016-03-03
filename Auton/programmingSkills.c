@@ -7,7 +7,7 @@
 void programmingSkills()
 {
 	//Driver loads
-	launchThirtyTwoBalls(76);
+	launchThirtyTwoBalls();
 
 	//Turn right and point at the red tile
 	turnGyro(-90);
@@ -19,7 +19,7 @@ void programmingSkills()
 	turnGyro(90);
 
 	//Driver loads
-	launchThirtyTwoBalls(76);
+	launchThirtyTwoBalls();
 }
 
 #endif //PROGRAMMINGSKILLS_H_INCLUDED

@@ -910,7 +910,7 @@ task maintainLauncherForAuton()
 
 		//Set motors to low slew rate to minimize torque on launcher
 		setAllLauncherMotorsSlewRate(0.8);
-		setAllLauncherMotors(-82);
+		setAllLauncherMotors(-launcherCurrentPower);
 
 		wait1Msec(25);
 	}
@@ -956,20 +956,17 @@ void launchFourBalls(int target)
 	stopTask(maintainLauncherForAuton);
 }
 
-void launchThirtyTwoBalls(int target)
+void launchThirtyTwoBalls()
 {
 	int ballCount = 0, intakeLimit_last = 0;
-
-	auton_maintainLauncher_target = target;
-	startTask(maintainLauncherForAuton);
-
-	//Wait for initial boost to finish
-	wait1Msec(3500);
 
 	//Run until 4 balls have been launched
 	setIntakeMotorsRaw(127);
 	while (ballCount < 32)
 	{
+		//Run launcher
+		setAllLauncherMotors(-80);
+
 		//If the intake limit switch is no longer hit, a ball has been fired
 		if (SensorValue[intakeLimit] == 0 && intakeLimit_last == 1)
 		{
@@ -983,7 +980,7 @@ void launchThirtyTwoBalls(int target)
 	}
 
 	setIntakeMotorsRaw(0);
-	stopTask(maintainLauncherForAuton);
+	setAllLauncherMotors(0);
 }
 
 bool forceTrig; //Simulate a collision

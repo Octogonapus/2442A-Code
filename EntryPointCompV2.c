@@ -147,11 +147,12 @@ task usercontrol()
 
 	//Launcher variables
 	const int boostTime = 100; //(-375 * (nAvgBatteryLevel / 1000.0)) + 3500;
-	const int launcher_FullCourt = 87, launcher_FullCourt_Approx = 79, launcher_MidCourt = 75, launcher_MidCourt_Approx = 62;
+	const int launcher_FullCourt = 87, launcher_FullCourt_Approx = 79, launcher_MidCourt = 75, launcher_MidCourt_Approx = 62, launcherRPMIncrement = 1;
+	const int launcher_POWER_FullCourt = 82, launcher_POWER_MidCourt = 70, launcher_POWER_Increment = 1;
 	bool launcherOn = false, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
 	bool launcher127Time = false, launcher127TimeMarker = false;
 	int launcherTargetRPM = 87, launcherTargetRPM_last = 0;
-	int launcherPOWER = 52, launcherCurrentPower = 0, launcherRPMIncrement = 1;
+	int launcherPOWER = 52, launcherCurrentPower = 0;
 
 	startTask(motorSlewRateTask);
 
@@ -498,7 +499,7 @@ task usercontrol()
 			launcherTargetRPM = launcher_FullCourt;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcher_FullCourt_Approx);
 
-			launcherPOWER = 80;
+			launcherPOWER = launcher_POWER_FullCourt;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RL]);
@@ -510,7 +511,7 @@ task usercontrol()
 			launcherTargetRPM = launcher_MidCourt;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, launcher_MidCourt_Approx);
 
-			launcherPOWER = 70;
+			launcherPOWER = launcher_POWER_MidCourt;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RR]);
@@ -522,7 +523,7 @@ task usercontrol()
 			launcherTargetRPM += launcherRPMIncrement;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, vel_TBH_GetOpenLoopApprox(&launcherTBH) + 1);
 
-			launcherPOWER++;
+			launcherPOWER += launcher_POWER_Increment;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RU]);
@@ -534,7 +535,7 @@ task usercontrol()
 			launcherTargetRPM -= launcherRPMIncrement;
 			vel_TBH_SetTargetVelocity(&launcherTBH, launcherTargetRPM, vel_TBH_GetOpenLoopApprox(&launcherTBH) - 1);
 
-			launcherPOWER--;
+			launcherPOWER -= launcher_POWER_Increment;
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_RD]);
