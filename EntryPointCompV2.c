@@ -548,7 +548,7 @@ task usercontrol()
 		if (vexRT[JOY_BTN_LR])
 		{
 			//Shift gear
-			shiftGear();
+			//shiftGear();
 
 			//Wait for the button to be released before continuing
 			waitForZero(vexRT[JOY_BTN_LR]);

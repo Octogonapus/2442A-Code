@@ -43,7 +43,7 @@
 #define setAllLauncherMotorsRaw(power) motor[leftDriveBottomFront] = power; motor[leftDriveBottomBack] = power; motor[leftDriveTopBack] = power; motor[rightDriveBottomFront] = power; motor[rightDriveBottomBack] = power; motor[rightDriveTopBack] = power
 
 //RAW INTAKE
-#define setOutisdeIntakeMotorsRaw(power) motor[intakeFront] = power
+#define setOutsideIntakeMotorsRaw(power) motor[intakeFront] = power
 #define setInsideIntakeMotorsRaw(power) motor[intakeBack] = power
 #define setAllIntakeMotorsRaw(power) motor[intakeFront] = power; motor[intakeBack] = power
 
@@ -958,19 +958,47 @@ void launchFourBalls(int target)
 
 void launchThirtyTwoBalls()
 {
+	const int launchTime = 775;
 	int ballCount = 0, intakeLimit_last = 0;
 
-	//Run until 4 balls have been launched
-	setIntakeMotorsRaw(127);
+	timer t;
+	timer_Initialize(&t);
+
+	shiftGear(1);
+	startTask(motorSlewRateTask);
+
+	//Run until 32 balls have been launched
+	setOutsideIntakeMotorsRaw(127);
 	while (ballCount < 32)
 	{
 		//Run launcher
 		setAllLauncherMotors(-80);
 
-		//If the intake limit switch is no longer hit, a ball has been fired
-		if (SensorValue[intakeLimit] == 0 && intakeLimit_last == 1)
+		//Ball not ready or ball fired
+		if (SensorValue[intakeLimit] == 0)
 		{
-			ballCount++;
+			//Ball fired
+			if (intakeLimit_last == 1)
+			{
+				ballCount++;
+				timer_ClearHardMarker(&t);
+				timer_PlaceHardMarker(&t);
+			}
+
+			//Ball not ready
+			setInsideIntakeMotorsRaw(127);
+		}
+		//Ball ready
+		else
+		{
+			if (timer_GetDTFromHardMarker(&t) >= launchTime)
+			{
+				setInsideIntakeMotorsRaw(127);
+			}
+			else
+			{
+				setInsideIntakeMotorsRaw(0);
+			}
 		}
 
 		//Remember current intake limit switch position
