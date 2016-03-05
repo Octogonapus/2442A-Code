@@ -6,7 +6,7 @@
 void blueLeftAutonTertiary()
 {
 	//Drive to midfield
-	driveQuad(127, 1000);
+	driveQuad(110, 2000);
 }
 
 #endif
