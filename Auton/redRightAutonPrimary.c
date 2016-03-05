@@ -6,7 +6,7 @@
 void redRightAutonPrimary()
 {
 	//Launch four preloads
-	launchFourBalls(85);
+	launchFourBalls(91);
 
 	//Drive forward out from starting tile
 	driveQuad(110, 300);

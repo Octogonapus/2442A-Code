@@ -969,7 +969,7 @@ void launchThirtyTwoBalls()
 
 	//Run until 32 balls have been launched
 	setOutsideIntakeMotorsRaw(127);
-	while (ballCount < 32)
+	while (ballCount < 31)
 	{
 		//Run launcher
 		setAllLauncherMotors(-80);
