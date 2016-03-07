@@ -958,7 +958,7 @@ void launchFourBalls(int target)
 
 void launchThirtyTwoBalls()
 {
-	const int launchTime = 775;
+	const int launchTime = 600;
 	int ballCount = 0, intakeLimit_last = 0;
 
 	timer t;
@@ -972,7 +972,7 @@ void launchThirtyTwoBalls()
 	while (ballCount < 31)
 	{
 		//Run launcher
-		setAllLauncherMotors(-80);
+		setAllLauncherMotors(-85);
 
 		//Ball not ready or ball fired
 		if (SensorValue[intakeLimit] == 0)

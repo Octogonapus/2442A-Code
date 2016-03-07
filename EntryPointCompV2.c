@@ -38,7 +38,7 @@
 
 //Setup LCD
 #define LCD_SAFETY_REQ_COMP_SWITCH
-#define MENU_NUM 6
+#define MENU_NUM 7
 #define USING_QUADS
 #define USING_GYRO
 
@@ -67,6 +67,7 @@ vel_TBH launcherTBH;
 
 //Menus
 //Level 1 - General Info
+menu *driverSkillsMenu;
 menu *programmingSkillsMenu;
 menu *autonomousSelectionMenu;
 menu *endPreAutonMenu;
@@ -100,6 +101,7 @@ void pre_auton()
 	//Level 1 - General Info
 	autonomousSelectionMenu = newMenu("Select Auton", 2);
 	programmingSkillsMenu = newMenu("Prog Skills", 3);
+	driverSkillsMenu = newMenu("Driver Skills", 4);
 	endPreAutonMenu = newMenu("Confirm", 1);
 
 	string batteryVoltage;
@@ -114,7 +116,7 @@ void pre_auton()
 	sprintf(backupBatteryVoltage, "Backup: %1.2f%c", BackupBatteryLevel / 1000.0, 'V');
 	backupBatteryVoltageMenu = newMenu(backupBatteryVoltage);
 
-	linkMenus(programmingSkillsMenu, autonomousSelectionMenu, endPreAutonMenu, batteryVoltageMenu, powerExpanderVoltageMenu, backupBatteryVoltageMenu);
+	linkMenus(driverSkillsMenu, programmingSkillsMenu, autonomousSelectionMenu, endPreAutonMenu, batteryVoltageMenu, powerExpanderVoltageMenu, backupBatteryVoltageMenu);
 
 	bLCDBacklight = true;
 	startTask(updateLCDTask);
@@ -128,6 +130,8 @@ task autonomous()
 	startAutonomous();
 }
 
+bool launcherOn = false;
+int launcherPOWER = 0;
 task usercontrol()
 {
 	//startTask(autonomous);
@@ -149,10 +153,10 @@ task usercontrol()
 	const int boostTime = 100; //(-375 * (nAvgBatteryLevel / 1000.0)) + 3500;
 	const int launcher_FullCourt = 87, launcher_FullCourt_Approx = 79, launcher_MidCourt = 75, launcher_MidCourt_Approx = 62, launcherRPMIncrement = 1;
 	const int launcher_POWER_FullCourt = 82, launcher_POWER_MidCourt = 70, launcher_POWER_Increment = 1;
-	bool launcherOn = false, launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
+	bool launcherBypass = false, revLauncher = false, limitSwitchLast = false, launcherJustBoosted = false, launcher_UseBypass = false;
 	bool launcher127Time = false, launcher127TimeMarker = false;
 	int launcherTargetRPM = 87, launcherTargetRPM_last = 0;
-	int launcherPOWER = 52, launcherCurrentPower = 0;
+	int launcherCurrentPower = 0;
 
 	startTask(motorSlewRateTask);
 
@@ -646,6 +650,11 @@ void invoke(int func)
 
 		case 3:
 			programmingSkills();
+			break;
+
+		case 4:
+			launcherOn = true;
+			launcherPOWER = 83;
 			break;
 
 		default:
